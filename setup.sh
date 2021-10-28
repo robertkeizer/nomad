@@ -384,7 +384,7 @@ function setup-misc() {
   if [ -e $FI ]; then
     # workaround focal-era bug after ~70 deploys (and thus 70 "veth" interfaces)
     # https://www.mail-archive.com/ubuntu-bugs@lists.ubuntu.com/msg5888501.html
-    sed -i -e 's^ReceiveBuffer=.*$^ReceiveBuffer=256M^' $FI
+    sudo sed -i -e 's^ReceiveBuffer=.*$^ReceiveBuffer=256M^' $FI
   fi
 }
 
