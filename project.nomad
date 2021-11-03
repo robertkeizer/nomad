@@ -436,6 +436,39 @@ EOH
   } # end dynamic "group"
 
 
+  reschedule {
+    # up to 20 attempts, 20s delays between fails, doubling delay between, w/ a 15m cap
+    attempts = 10
+    delay = "20s"
+    max_delay = "1800"
+    delay_function = "exponential"
+    interval = "4h"
+
+    /*
+      deno eval 'let tot=0; let d=20; for (let i=0; i < 20; i++) { console.warn({d, tot}); d=Math.min(900, d*2); tot += d }'
+      { d: 20, tot: 0 }
+      { d: 40, tot: 40 }
+      { d: 80, tot: 120 }
+      { d: 160, tot: 280 }
+      { d: 320, tot: 600 }
+      { d: 640, tot: 1240 }
+      { d: 900, tot: 2140 }
+      { d: 900, tot: 3040 }
+      { d: 900, tot: 3940 }
+      { d: 900, tot: 4840 }
+      { d: 900, tot: 5740 }
+      { d: 900, tot: 6640 }
+      { d: 900, tot: 7540 }
+      { d: 900, tot: 8440 }
+      { d: 900, tot: 9340 }
+      { d: 900, tot: 10240 }
+      { d: 900, tot: 11140 }
+      { d: 900, tot: 12040 }
+      { d: 900, tot: 12940 }
+      { d: 900, tot: 13840 }
+    */
+  }
+
   spread {
     # Spread allocations equally over all nodes
     attribute = "${node.unique.id}"
