@@ -445,6 +445,7 @@ EOH
     max_delay      = "1800s"
     delay_function = "exponential"
     interval       = "4h"
+    unlimited      = false
   }
 
   spread {
