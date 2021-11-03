@@ -436,16 +436,16 @@ EOH
   } # end dynamic "group"
 
 
-  reschedule {
+#  reschedule {
     # Up to 20 attempts, 20s delays between fails, doubling delay between, w/ a 15m cap, eg:
     #
     # deno eval 'let tot=0; let d=20; for (let i=0; i < 20; i++) { console.warn({d, tot}); d=Math.min(900, d*2); tot += d }'
-    attempts = 10
-    delay = "20s"
-    max_delay = "1800"
-    delay_function = "exponential"
-    interval = "4h"
-  }
+#    attempts = 10
+#    delay = "20s"
+#    max_delay = "1800"
+#    delay_function = "exponential"
+#    interval = "4h"
+#  }
 
   spread {
     # Spread allocations equally over all nodes
