@@ -9,7 +9,7 @@ RUN cd /usr/sbin  &&  \
     node --input-type=module -e " \
         import https from 'https'; \
         import fs from 'fs'; \
-        const URL = 'https://releases.hashicorp.com/nomad/1.1.2/nomad_1.1.2_linux_amd64.zip'; \
+        const URL = 'https://releases.hashicorp.com/nomad/1.1.6/nomad_1.1.6_linux_amd64.zip'; \
         const DST = 'nomad.zip'; \
         const request = https.get(URL, (resp) => resp.pipe(fs.createWriteStream(DST)))"  &&  \
     apt-get -yqq update  &&  \
