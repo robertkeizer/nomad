@@ -2,8 +2,7 @@
 
 # Installs latest stable docker-ce version for current ubuntu OS.
 # Should be andy/tracey compatible -- ie: should be same version.
-VER="=18.06.1~ce~3-0~ubuntu"
-VER=
+VER="=5:19.03.13~3-0~ubuntu-focal"
 
 [ "$( docker -v 2> /dev/null )" = "" ]  ||  echo 'docker already installed - exiting'
 [ "$( docker -v 2> /dev/null )" = "" ]  ||  exit 0
