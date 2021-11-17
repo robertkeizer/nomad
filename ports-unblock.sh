@@ -77,7 +77,7 @@ saddr $CLUSTER proto tcp dport 8301 ACCEPT;
 saddr $CLUSTER proto tcp dport 9998 ACCEPT;
 
 # locator UDP port for archive website
-saddr $CLUSTER proto udp sport 8010 ACCEPT;'
+saddr $CLUSTER proto udp sport 8010 ACCEPT;
 
 # for webapps and such on higher ports
 saddr $CLUSTER proto tcp dport 20000:45000 ACCEPT;
