@@ -1,4 +1,7 @@
-Code to create and deploy to Nomad clusters.
+Code, setup, and information to:
+- create Nomad clusters
+- setup automatic deployment to Nomad clusters from GitLab's standard CI/CD pipelines
+- interact with, monitor, and customize deployments
 
 
 [[_TOC_]]
@@ -333,7 +336,7 @@ gitlab-runner start
 ![Architecture](architecture.drawio.svg)
 
 
-# Requirements for archive.org CI/CD:
+# Requirements for archive.org CI/CD
 - docker exec ✅
   - pop into deployed container and poke around - similar to `ssh`
   - @see [aliases](aliases)  `nom-ssh`
