@@ -32,7 +32,11 @@ variables {
 
   # A repo can set this to "tcp" - can help for debugging 1st deploy
   CHECK_PROTOCOL = "http"
+  # What path healthcheck should use and require a 200 status answer for succcess
   CHECK_PATH = "/"
+  # Allow individual, periodic healthchecks this much time to answer with 200 status
+  CHECK_TIMEOUT = "2s"
+  # Dont start first healthcheck until container up at least this long (adjust for slow startups)
   HEALTH_TIMEOUT = "20s"
 
   # How many running containers should you deploy?
@@ -201,7 +205,7 @@ job "NOMAD_VAR_SLUG" {
           path     = "${var.CHECK_PATH}"
           port     = "http"
           interval = "10s"
-          timeout  = "2s"
+          timeout  = "${var.CHECK_TIMEOUT}"
           check_restart {
             limit = 3  # auto-restart task when healthcheck fails 3x in a row
 
