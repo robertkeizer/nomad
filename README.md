@@ -4,6 +4,7 @@ Code to create and deploy to Nomad clusters.
 [[_TOC_]]
 
 
+# Overview
 Deployment leverages a simple `.gitlab-ci.yml` using GitLab runners & CI/CD ([build] and [test]);
 then switches to custom [deploy] phase to deploy docker containers into `nomad`.
 
@@ -62,7 +63,10 @@ NOMAD_VAR_PV_DB
 ```
 - See the top of [project.nomad](project.nomad)
 - Our customizations always prefix with `NOMAD_VAR_`.
-- You can simply insert them, with values, in your project's `.gitlab-ci.yml` file before including _our_ `.gitlab-ci.yml` like above.  Example:
+- You can simply insert them, with values, in your project's `.gitlab-ci.yml` file before including _our_ `.gitlab-ci.yml` like above.
+- Examples 👇
+#### Don't actually deploy containers to nomad
+Perhaps your project just wants to leverage the CI (Continuous Integration) for [buil] and/or [test] steps - but not CD (Continuous Deployment).  An example might be a back-end container that runs elsewhere and doesn't have web listener.
 ```yaml
 variables:
   NOMAD_VAR_NO_DEPLOY: 'true'
