@@ -1,4 +1,8 @@
-# Code to create and deploy to Nomad clusters.
+Code to create and deploy to Nomad clusters.
+
+
+[[_TOC_]]
+
 
 Deployment leverages a simple `.gitlab-ci.yml` using GitLab runners & CI/CD ([build] and [test]);
 then switches to custom [deploy] phase to deploy docker containers into `nomad`.
@@ -14,7 +18,7 @@ Uses:
 ![Architecture](overview2.drawio.svg)
 
 
-## want to deploy to nomad? 🚀
+## Want to deploy to nomad? 🚀
 - verify project's [Settings] [CI/CD] [Variables] has either Group or Project level settings for:
   - `NOMAD_ADDR` `https://MY-HOSTNAME:4646`
   - `NOMAD_TOKEN` `MY-TOKEN`
@@ -37,7 +41,7 @@ test:
 - [optional] you can copy this [project.nomad](project.nomad) file into your repo top level and customize/extend it if desired
 - _... but there's a good chance you won't need to_ 😎
 
-### customizing
+### Customizing
 There are various options that can be used in conjunction with the `project.nomad` and `.gitlab-ci.yml` files, keys:
 ```text
 NOMAD_VAR_BIND_MOUNTS
@@ -64,8 +68,85 @@ variables:
   NOMAD_VAR_NO_DEPLOY: 'true'
 ```
 
+#### Custom default RAM expectations from (default) 300 MB to 1 GB
+This value is the _expected_ value for your container's average running needs/usage, helpful for `nomad` scheduling purposes.  It is a "soft limit" and we use *ten times* this amount to be the amount used for a "hard limit".  If your allocated container exceeds the hard limit, the container may be restarted by `nomad` if there is memory pressure on the Virtual Machine the container is running on.
+```yaml
+variables:
+  NOMAD_VAR_MEMORY: 1000
+```
+#### Custom default CPU expectations from (default) 100 MHz to 1 GHz
+This value is the _expected_ value for your container's average running needs/usage, helpful for `nomad` scheduling purposes.  It is a "soft limit".  If your allocated container exceeds your specified limit, the container _may_ be restarted by `nomad` if there is CPU pressure on the Virtual Machine the container is running on.  (So far, CPU-based restarts seem very rare in practice, since most VMs tend to "fill" up from aggregate container RAM requirements first 😊)
+```yaml
+variables:
+  NOMAD_VAR_CPU: 1000
+```
+#### Custom healthcheck, change from (default) HTTP to TCP:
+This can be useful if your webapp serves using websockets, doesnt respond to http, or typically takes too long (or can't) respond with a `200 OK` status.  (Think of it like switching to just a `ping` on your main port your webapp listens on).
+```yaml
+variables:
+  NOMAD_VAR_CHECK_PROTOCOL: 'tcp'
+```
+#### Custom healthcheck, change path from (default) `/` to `/healthcheck`:
+```yaml
+variables:
+  NOMAD_VAR_CHECK_PATH: '/healthcheck'
+```
+#### Custom healthcheck run time, change from (default) `2s` (2 seconds) to `1m` (one minute)
+If your healthcheck may take awhile to run & succeed, you can increase the amount of time the `consul` healthcheck allows your HTTP request to run.
+```yaml
+variables:
+  NOMAD_VAR_CHECK_TIMEOUT: '1m'
+```
+#### Custom time to start healthchecking after container re/start from (default) `20s` (20 second) to `3m` (3 minutes)
+If your container takes awhile, after startup, to settle before healthchecking can work reliably, you can extend the wait time for the first healthcheck to run.
+```yaml
+variables:
+  NOMAD_VAR_HEALTH_TIMEOUT: '3m'
+```
+#### Custom running container count from (default) 1 to 3
+You can run more than one container for increased reliability, more request processing, and more reliable uptimes (in the event of one or more Virtual Machines hosting containers having issues).
 
-## laptop access
+For archive.org users, we suggest instead to switch your production deploy to our alternate production cluster.
+
+Keep in mind, you will have 2+ containers running simultaneously (_usually_, but not always, on different VMs).  So if your webapp uses any shared resources, like backends not in containers, or "persistent volumes", that you will need to think about concurrency, potentially multiple writers, etc. 😊
+```yaml
+variables:
+  NOMAD_VAR_COUNT: 3
+```
+#### Custom make NFS `/home/` available in running containers, readonly
+Allow your containers to see NFS `/home/` home directories, readonly.
+```yaml
+variables:
+  NOMAD_VAR_HOME: 'ro'
+```
+#### Custom make NFS `/home/` available in running containers, read/write
+Allow your containers to see NFS `/home/` home directories, readable and writable.  Please be highly aware of operational security in your container when using this (eg: switch your `USER` in your `Dockerfile` to another non-`root` user; use "prepared statements" with any DataBase interactions; use [https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP](Content Security Policy) in all your pages to eliminate [https://developer.mozilla.org/en-US/docs/Glossary/Cross-site_scripting](XSS attacks, etc.)
+```yaml
+variables:
+  NOMAD_VAR_HOME: 'rw'
+```
+#### Custom hostname for your `main` branch deploy
+Your deploy will get a nice semantic hostname by default, based upon "[slugged](https://en.wikipedia.org/wiki/Clean_URL#Slug)" formula like: https://[GITLAB_GROUP]-[GITLAB_PROJECT_OR_REPO_NAME]-[BRANCH_NAME].  However, you can override this if needed.  This custom hostname will only pertain to a branch named `main` (or `master` [sic])
+```yaml
+variables:
+  NOMAD_VAR_HOSTNAMES: '["www.example.com"]'
+```
+#### Custom hostnameS for your `main` branch deploy
+Similar to prior example, but you can have your main deployment respond to multiple hostnames if desired.
+```yaml
+variables:
+  NOMAD_VAR_HOSTNAMES: '["www.example.com", "store.example.com"]'
+```
+#### More customizations
+There are even more, less common, ways to customize your deploys.
+
+Please see the top area of [project.nomad](project.nomad) for "Persistent Volumes" (think a "disk" that survives container restarts), Postgres DB setup, additional open ports into your webapp, and more.
+
+
+
+
+
+## Laptop access
 - create `$HOME/.config/nomad` and/or get it from an admin who setup your Nomad cluster
   - @see top of [aliases](aliases)
   - `brew install nomad`
@@ -103,7 +184,7 @@ Options:
   - [[3/3] connect: GitLab, GitLab Runner, Nomad & Consul](https://archive.org/~tracey/slides/devops/2021-03-10)
 
 
-## monitoring GUI urls (via ssh tunnelling above)
+## Monitoring GUI urls (via ssh tunnelling above)
 ![Cluster Overview](https://archive.org/~tracey/slides/images/nomad-ui4.jpg)
 - nomad really nice overview (see `Topology` link ☝)
   - https://[NOMAD-HOST]:4646 (eg: `$NOMAD_ADDR`)
@@ -113,7 +194,7 @@ Options:
   - http://localhost:9998  # fabio
 
 
-## inspect, poke around
+## Inspect, poke around
 ```bash
 nomad node status
 nomad node status -allocs
@@ -194,7 +275,7 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 ```
 
 
-## helpful links
+## Helpful links
 - https://youtube.com/watch?v=3K1bSGN7zGA 'HashiConf Digital June 2020 - Full Opening Keynote'
 - https://www.nomadproject.io/docs/install/production/deployment-guide/
 - https://learn.hashicorp.com/nomad/managing-jobs/configuring-tasks
@@ -204,12 +285,12 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 - https://www.youtube.com/watch?v=gf43TcWjBrE  Kelsey Hightower, HashiConf 2016
 - https://fabiolb.net/quickstart/
 
-### helpful for https / certs
+### Helpful for https / certs
 - https://github.com/fabiolb/fabio/wiki/Certificate-Stores#examples
 - https://developer.epages.com/blog/tech-stories/managing-lets-encrypt-certificates-in-vault/
 - https://github.com/acmesh-official/acme.sh#11-issue-wildcard-certificates
 
-### pick your container stack / testimonials
+### Pick your container stack / testimonials
 - https://www.hashicorp.com/blog/hashicorp-joins-the-cncf/
 - https://www.nomadproject.io/intro/who-uses-nomad/
   - + http://jet.com/walmart
@@ -220,18 +301,18 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 - https://github.com/rishidot/Decision-Makers-Guide/blob/master/Decision%20Makers%20Guide%20-%20Nomad%20Vs%20Kubernetes%20-%20Oct%202019.pdf
 - https://medium.com/@trevor00/building-container-platforms-part-one-introduction-4ee2338eb11
 
-### future considerations?
+### Future considerations?
 - https://github.com/hashicorp/consul-esm  (external service monitoring for Consul)
 - https://github.com/timperrett/hashpi (🍓raspberry PI mini cluster 😊)
 
-## issues / next steps
+## Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
 - ACME / `certmanager` for let's encrypt / https, etc.
   - basic https works now if the certs are managed independently (and passed into fabio)
 
 
 
-## gitlab runner issues
+## Gitlab runner issues
 - *probably* just try `sudo service docker restart`
 - if that still doesnt get the previously registered runner to be able to contact/talk back to the gitlab server, on box where it runs, can try:
 ```bash
@@ -243,11 +324,11 @@ gitlab-runner start
 ```
 
 
-# multi-node architecture
+# Multi-node architecture
 ![Architecture](architecture.drawio.svg)
 
 
-## archive.org minimum requirements for CI/CD:
+## Requirements for archive.org CI/CD:
 - docker exec ✅
   - pop into deployed container and poke around - similar to `ssh`
   - @see [aliases](aliases)  `nom-ssh`
