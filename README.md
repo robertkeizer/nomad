@@ -146,6 +146,7 @@ There are even more, less common, ways to customize your deploys.
 
 Please see the top area of [project.nomad](project.nomad) for "Persistent Volumes" (think a "disk" that survives container restarts), Postgres DB setup, additional open ports into your webapp, and more.
 
+See also [this section](#optional-add-ons-to-your-project) below.
 
 
 
@@ -166,7 +167,7 @@ Please see the top area of [project.nomad](project.nomad) for "Persistent Volume
   - and enter your `$NOMAD_TOKEN` in the ACL requirement
 
 
-## Setup a Nomad Cluster
+# Setup a Nomad Cluster
 - [setup.sh](setup.sh)
   - you can customize the install with these environment variables:
     - `NFSHOME=1` - setup some minor config to support a r/w `/home/` and r/o `/home/`
@@ -188,7 +189,7 @@ Options:
   - [[3/3] connect: GitLab, GitLab Runner, Nomad & Consul](https://archive.org/~tracey/slides/devops/2021-03-10)
 
 
-## Monitoring GUI urls (via ssh tunnelling above)
+# Monitoring GUI urls (via ssh tunnelling above)
 ![Cluster Overview](https://archive.org/~tracey/slides/images/nomad-ui4.jpg)
 - nomad really nice overview (see `Topology` link ☝)
   - https://[NOMAD-HOST]:4646 (eg: `$NOMAD_ADDR`)
@@ -198,7 +199,7 @@ Options:
   - http://localhost:9998  # fabio
 
 
-## Inspect, poke around
+# Inspect, poke around
 ```bash
 nomad node status
 nomad node status -allocs
@@ -231,15 +232,15 @@ consul catalog services -tags
 wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 ```
 
-## Optional add-ons to your project
+# Optional add-ons to your project
 
-### Secrets
+## Secrets
 In your project/repo Settings, set CI/CD environment variables starting with `NOMAD_SECRET_`, marked `Masked` but _not_ `Protected`, eg:
 ![Secrets](etc/secrets.jpg)
 and they will show up in your running container as environment variables, named with the lead `NOMAD_SECRET_` removed.  Thus, you can get `DATABASE_URL` (etc.) set in your running container - but not have it anywhere else in your docker image and not printed/shown during CI/CD pipeline phase logging.
 
 
-### Persistent Volumes
+## Persistent Volumes
 Persistent Volumes (PV) are like mounted disks that get setup before your container starts and _mount_ in as a filesystem into your running container.  They are the only things that survive a running deployment update (eg: a new CI/CD pipeline), container restart, or system move to another cluster VM - hence _Persistent_.
 
 You can use PV to store files and data - especially nice for databases or otherwise (eg: retain `/var/lib/postgresql` through restarts, etc.)
@@ -264,7 +265,7 @@ variables:
 Please verify added/updated files persist through two repo CI/CD pipelines before adding important data and files.  Your DevOps teams will try to ensure the VM that holds the data is backed up - but that does not happen by default without some extra setup.  The host VM that holds the data is the first node in the cluster from the initial cluster setup (and it all lives at `/pv/`, in numbered subdirs).
 
 
-### Postgres DB
+## Postgres DB
 Requirements:
 - set masked environment variables in your project's CI/CD Settings (see `Secrets` section above):
   - `NOMAD_SECRET_POSTGRESQL_PASSWORD`
@@ -279,7 +280,7 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 ```
 
 
-## Helpful links
+# Helpful links
 - https://youtube.com/watch?v=3K1bSGN7zGA 'HashiConf Digital June 2020 - Full Opening Keynote'
 - https://www.nomadproject.io/docs/install/production/deployment-guide/
 - https://learn.hashicorp.com/nomad/managing-jobs/configuring-tasks
@@ -289,12 +290,12 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 - https://www.youtube.com/watch?v=gf43TcWjBrE  Kelsey Hightower, HashiConf 2016
 - https://fabiolb.net/quickstart/
 
-### Helpful for https / certs
+## Helpful for https / certs
 - https://github.com/fabiolb/fabio/wiki/Certificate-Stores#examples
 - https://developer.epages.com/blog/tech-stories/managing-lets-encrypt-certificates-in-vault/
 - https://github.com/acmesh-official/acme.sh#11-issue-wildcard-certificates
 
-### Pick your container stack / testimonials
+## Pick your container stack / testimonials
 - https://www.hashicorp.com/blog/hashicorp-joins-the-cncf/
 - https://www.nomadproject.io/intro/who-uses-nomad/
   - + http://jet.com/walmart
@@ -305,11 +306,11 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 - https://github.com/rishidot/Decision-Makers-Guide/blob/master/Decision%20Makers%20Guide%20-%20Nomad%20Vs%20Kubernetes%20-%20Oct%202019.pdf
 - https://medium.com/@trevor00/building-container-platforms-part-one-introduction-4ee2338eb11
 
-### Future considerations?
+# Future considerations?
 - https://github.com/hashicorp/consul-esm  (external service monitoring for Consul)
 - https://github.com/timperrett/hashpi (🍓raspberry PI mini cluster 😊)
 
-## Issues / next steps
+# Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
 - ACME / `certmanager` for let's encrypt / https, etc.
   - basic https works now if the certs are managed independently (and passed into fabio)
@@ -332,7 +333,7 @@ gitlab-runner start
 ![Architecture](architecture.drawio.svg)
 
 
-## Requirements for archive.org CI/CD:
+# Requirements for archive.org CI/CD:
 - docker exec ✅
   - pop into deployed container and poke around - similar to `ssh`
   - @see [aliases](aliases)  `nom-ssh`
