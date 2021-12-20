@@ -151,7 +151,24 @@ Please see the top area of [project.nomad](project.nomad) for "Persistent Volume
 
 See also [this section](#optional-add-ons-to-your-project) below.
 
+### Deploying to production nomad cluster (archive.org only)
+Our production cluster has 3 VMs and will deploy your repo to a running container on each VM, using `haproxy` load balancer to balance requests.
 
+This should ensure much higher availability and handle more requests.
+
+Keep in mind if your deployment uses a "persistent volume" or talks to other backend services, you'll be getting traffic and access from multiple containers simultaneously.
+
+Setting up your repo to deploy to production is easy!
+
+- Make a new branch named `production` (presumably from your repo's latest `main` or `master` branch)
+- [Protect the `production` branch](https://docs.gitlab.com/ee/user/project/protected_branches.html)
+  - suggest using same settings as your `main` or `master` (or default) branch
+- add `NOMAD_TOKEN` with the nomad production cluster value (ask tracey or matt)
+  - make it: protected, masked, and `production` environment (only)
+![Production CI/CD Secret](etc/prod.jpg)
+- create a new `production` pipeline
+  - It should now deploy your project to a different `NOMAD_ADDR` url
+  - Your default hostname domain will change from `.dev.archive.org` to `.prod.archive.org`
 
 
 ## Laptop access
