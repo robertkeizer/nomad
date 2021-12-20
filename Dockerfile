@@ -3,8 +3,7 @@
 
 FROM denoland/deno:alpine
 
-# add `nomad`
-# xxxd 1.2.3
+# add `nomad` -- NOTE v1.2.3 breaks `nomad validate` where `CI_` env vars are loading into `project.hcl` ?!
 RUN cd /usr/sbin && \
     wget -qO  nomad.zip  https://releases.hashicorp.com/nomad/1.1.6/nomad_1.1.6_linux_amd64.zip && \
     unzip     nomad.zip  && \
