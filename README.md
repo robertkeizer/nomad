@@ -156,7 +156,7 @@ Our production cluster has 3 VMs and will deploy your repo to a running containe
 
 This should ensure much higher availability and handle more requests.
 
-Keep in mind if your deployment uses a "persistent volume" or talks to other backend services, you'll be getting traffic and access from multiple containers simultaneously.
+Keep in mind if your deployment uses a "persistent volume" or talks to other backend services, they'll be getting traffic and access from multiple containers simultaneously.
 
 Setting up your repo to deploy to production is easy!
 
