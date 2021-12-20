@@ -10,7 +10,7 @@ RUN cd /usr/sbin && \
     rm        nomad.zip  && \
     chmod 777 nomad
 
-USER deno
+# USER deno
 
 # NOTE: `nomad` binary needed for other repositories using us for CI/CD - but drop from _our_ webapp.
 CMD rm /usr/sbin/nomad  &&  deno eval "import { serve } from 'https://deno.land/std/http/server.ts'; serve(() => new Response('hai'), { port: 5000 })"
