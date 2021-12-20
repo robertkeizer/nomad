@@ -123,9 +123,7 @@ deploy:
     - deno eval 'console.log(JSON.stringify(Object.fromEntries(Object.entries(Deno.env.toObject()).filter(([k, v]) => k.startsWith("CI_")))))' >| /tmp/env.json
 
     # xxxd
-    - pwd
-    - cat project.hcl
-    - wc /tmp/env.env /tmp/env.json
+    - if [ "$CI_PROJECT_PATH_SLUG" = "internetarchive-nomad" ]; then sleep 600; done
 
     - nomad validate -var-file=/tmp/env.json -var-file=/tmp/env.env project.hcl
     - nomad plan     -var-file=/tmp/env.json -var-file=/tmp/env.env project.hcl 2>&1 |sed 's/\(password[^ \t]*[ \t]*\).*/\1 ... /' |tee /tmp/plan.log  ||  echo
