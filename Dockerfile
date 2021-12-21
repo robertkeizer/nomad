@@ -5,7 +5,8 @@ FROM denoland/deno:alpine
 
 # add `nomad`
 # NOTE v1.2.3 breaks `nomad validate` where `CI_` env vars are loading into `project.hcl` ?!
-RUN cd /usr/sbin && \
+RUN mkdir -m777 /usr/local/sbin  && \
+    cd          /usr/local/sbin  && \
     wget -qO  nomad.zip  https://releases.hashicorp.com/nomad/1.1.6/nomad_1.1.6_linux_amd64.zip && \
     unzip     nomad.zip  && \
     rm        nomad.zip  && \
@@ -14,4 +15,4 @@ RUN cd /usr/sbin && \
 USER deno
 
 # NOTE: `nomad` binary needed for other repositories using us for CI/CD - but drop from _our_ webapp.
-CMD rm /usr/sbin/nomad  &&  deno eval "import { serve } from 'https://deno.land/std/http/server.ts'; serve(() => new Response('hai'), { port: 5000 })"
+CMD rm /usr/local/sbin/nomad  &&  deno eval "import { serve } from 'https://deno.land/std/http/server.ts'; serve(() => new Response('hai'), { port: 5000 })"
