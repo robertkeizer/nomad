@@ -23,6 +23,7 @@ if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
 
 env; exit 0; # xxx
 
+# below is a direct copy from .gitlab-ci.yml, with any lead `-` chars removed for the YML steps
 
 
 ############################### NOMAD VARS SETUP ##############################
