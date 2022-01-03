@@ -14,6 +14,7 @@ RUN mkdir -m777 /usr/local/sbin  && \
     # make our CI/CD yml (which shells out) able to use `bash` instead of uber (sh)itty `sh` ;-)
     apk add bash
 
+COPY deploy.sh /
 USER deno
 
 # NOTE: `nomad` binary needed for other repositories using us for CI/CD - but drop from _our_ webapp.
