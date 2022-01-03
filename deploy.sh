@@ -4,12 +4,13 @@
 
 if [ "$GITHUB_ACTIONS" ]; then
   # Add these as Secrets to your repository or organization:
-  # NOMAD_ADDR
-  # NOMAD_TOKEN
-  # KUBE_INGRESS_BASE_DOMAIN
-  # CI_R2_PASS
-
-  # CI_R2_USER
+  #   NOMAD_ADDR
+  #   NOMAD_TOKEN
+  #   KUBE_INGRESS_BASE_DOMAIN
+  #
+  # If your repo is not public, you'll need to add a token to `docker login` with via *PASS var:
+  #   CI_R2_PASS
+  #   CI_R2_USER
 
 
   # Convert from GH env vars to GL-like env vars
@@ -104,24 +105,24 @@ echo deploying to https://$HOSTNAME
 # this fully parameterized nice generic 'house style' project.
 #
 # Create project.hcl - including optional insertions that a repo might elect to inject
-|
-  if [ -e project.nomad ]; then
-    cp project.nomad project.hcl
-  else
-    wget -q https://gitlab.com/internetarchive/nomad/-/raw/master/project.nomad
-    (
-      fgrep -B10000 VARS.NOMAD--INSERTS-HERE project.nomad
-      # if this filename doesnt exist in repo, this line noops
-      cat vars.nomad 2>/dev/null || echo
-      fgrep -A10000 VARS.NOMAD--INSERTS-HERE project.nomad
-    ) >| /tmp/project.nomad
-    (
-      fgrep -B10000 JOB.NOMAD--INSERTS-HERE /tmp/project.nomad
-      # if this filename doesnt exist in repo, this line noops
-      cat job.nomad 2>/dev/null || echo
-      fgrep -A10000 JOB.NOMAD--INSERTS-HERE /tmp/project.nomad
-    ) >| project.hcl
-  fi
+if [ -e project.nomad ]; then
+  cp project.nomad project.hcl
+else
+  wget -q https://gitlab.com/internetarchive/nomad/-/raw/master/project.nomad
+  (
+    fgrep -B10000 VARS.NOMAD--INSERTS-HERE project.nomad
+    # if this filename doesnt exist in repo, this line noops
+    cat vars.nomad 2>/dev/null || echo
+    fgrep -A10000 VARS.NOMAD--INSERTS-HERE project.nomad
+  ) >| /tmp/project.nomad
+  (
+    fgrep -B10000 JOB.NOMAD--INSERTS-HERE /tmp/project.nomad
+    # if this filename doesnt exist in repo, this line noops
+    cat job.nomad 2>/dev/null || echo
+    fgrep -A10000 JOB.NOMAD--INSERTS-HERE /tmp/project.nomad
+  ) >| project.hcl
+fi
+
 
 # Do the one current substitution nomad v1.0.3 can't do now (apparently a bug)
 sed -i "s/NOMAD_VAR_SLUG/$NOMAD_VAR_SLUG/" project.hcl
