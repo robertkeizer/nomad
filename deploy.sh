@@ -3,6 +3,15 @@
 # xxx stop_review...
 
 if [ "$GITHUB_ACTIONS" ]; then
+  # Add these as Secrets to your repository or organization:
+  # NOMAD_ADDR
+  # NOMAD_TOKEN
+  # KUBE_INGRESS_BASE_DOMAIN
+  # CI_R2_PASS
+
+  # CI_R2_USER
+
+
   # Convert from GH env vars to GL-like env vars
   # eg: GITHUB_REPOSITORY=internetarchive/dyno
 
@@ -16,14 +25,6 @@ if [ "$GITHUB_ACTIONS" ]; then
   export CI_COMMIT_REF_SLUG="${GITHUB_REF_NAME?}"
   # eg: internetarchive-dyno  xxxd better slugification
   export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr / -)
-
-  # GH Actions will need to send in these vars xxxd
-  # NOMAD_ADDR
-  # NOMAD_TOKEN
-  # KUBE_INGRESS_BASE_DOMAIN
-  # CI_R2_PASS
-
-  # CI_R2_USER
 
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
