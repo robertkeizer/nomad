@@ -52,7 +52,7 @@ variables {
   POSTGRESQL_PASSWORD = ""
 
   # only used for github repos
-  GITHUB__IMAGE = ""
+  CI_GITHUB_IMAGE = ""
 
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
@@ -247,8 +247,8 @@ job "NOMAD_VAR_SLUG" {
           driver = "docker"
 
           config {
-            # Effectively use GITHUB__IMAGE if set, otherwise use GitLab vars interpolated string
-            image = element([for s in [var.GITHUB__IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
+            # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
+            image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
             image_pull_timeout = "20m"
             network_mode = "${var.NETWORK_MODE}"
 

@@ -142,7 +142,7 @@ function github-setup() {
   export CI_REGISTRY="${REGISTRY?}"
 
   # eg: ghcr.io/internetarchive/dyno:main  (registry image)
-  export GITHUB__IMAGE="${REGISTRY?}/${GITHUB_REPOSITORY?}:${GITHUB_REF_NAME?}"
+  export CI_GITHUB_IMAGE="${REGISTRY?}/${GITHUB_REPOSITORY?}:${GITHUB_REF_NAME?}"
 
   # eg: dyno  (project name)
   export CI_PROJECT_NAME=$(basename "${GITHUB_REPOSITORY?}")
