@@ -28,8 +28,6 @@ if [ "$GITHUB_ACTIONS" ]; then
 
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
-
-  whoami; pwd; touch /tmp/me; ls -l /tmp/me; ls -l .; ls -ld .; echo xxxd
 fi
 
 
@@ -111,21 +109,24 @@ echo deploying to https://$HOSTNAME
 # this fully parameterized nice generic 'house style' project.
 #
 # Create project.hcl - including optional insertions that a repo might elect to inject
-if [ -e project.nomad ]; then
-  cp project.nomad project.hcl
+REPODIR="$(pwd)"
+cd /tmp
+if [ -e "$REPODIR/project.nomad" ]; then
+  cp "$REPODIR/project.nomad" project.hcl
 else
+  rm -f project.nomad
   wget -q https://gitlab.com/internetarchive/nomad/-/raw/master/project.nomad
   (
     fgrep -B10000 VARS.NOMAD--INSERTS-HERE project.nomad
     # if this filename doesnt exist in repo, this line noops
-    cat vars.nomad 2>/dev/null || echo
+    cat "$REPODIR/vars.nomad" 2>/dev/null || echo
     fgrep -A10000 VARS.NOMAD--INSERTS-HERE project.nomad
-  ) >| /tmp/project.nomad
+  ) >| tmp.nomad
   (
-    fgrep -B10000 JOB.NOMAD--INSERTS-HERE /tmp/project.nomad
+    fgrep -B10000 JOB.NOMAD--INSERTS-HERE tmp.nomad
     # if this filename doesnt exist in repo, this line noops
-    cat job.nomad 2>/dev/null || echo
-    fgrep -A10000 JOB.NOMAD--INSERTS-HERE /tmp/project.nomad
+    cat "$REPODIR/job.nomad" 2>/dev/null || echo
+    fgrep -A10000 JOB.NOMAD--INSERTS-HERE tmp.nomad
   ) >| project.hcl
 fi
 
@@ -134,19 +135,19 @@ fi
 sed -i "s/NOMAD_VAR_SLUG/$NOMAD_VAR_SLUG/" project.hcl
 # set NOMAD_SECRETS to JSON encoded key/val hashmap of env vars starting w/ "NOMAD_SECRET_"
 # (w/ NOMAD_SECRET_ prefix omitted), then convert to HCL style hashmap string (chars ":" => "=")
-echo NOMAD_SECRETS=$(deno eval 'console.log(JSON.stringify(Object.fromEntries(Object.entries(Deno.env.toObject()).filter(([k, v]) => k.startsWith("NOMAD_SECRET_")).map(([k ,v]) => [k.replace(/^NOMAD_SECRET_/,""), v]))))' | sed 's/":"/"="/g') >| /tmp/env.env
+echo NOMAD_SECRETS=$(deno eval 'console.log(JSON.stringify(Object.fromEntries(Object.entries(Deno.env.toObject()).filter(([k, v]) => k.startsWith("NOMAD_SECRET_")).map(([k ,v]) => [k.replace(/^NOMAD_SECRET_/,""), v]))))' | sed 's/":"/"="/g') >| env.env
 # copy current env vars starting with "CI_" to "NOMAD_VAR_CI_" variants & inject them into shell
-deno eval 'Object.entries(Deno.env.toObject()).map(([k, v]) => console.log("export NOMAD_VAR_"+k+"="+JSON.stringify(v)))' |egrep '^export NOMAD_VAR_CI_' >| /tmp/ci.env
-source /tmp/ci.env
-rm     /tmp/ci.env
+deno eval 'Object.entries(Deno.env.toObject()).map(([k, v]) => console.log("export NOMAD_VAR_"+k+"="+JSON.stringify(v)))' |egrep '^export NOMAD_VAR_CI_' >| ci.env
+source ci.env
+rm     ci.env
 
 set -x
-nomad validate -var-file=/tmp/env.env project.hcl
-nomad plan     -var-file=/tmp/env.env project.hcl 2>&1 |sed 's/\(password[^ \t]*[ \t]*\).*/\1 ... /' |tee /tmp/plan.log  ||  echo
-export INDEX=$(grep -E -o -- '-check-index [0-9]+' /tmp/plan.log |tr -dc 0-9)
-nomad run      -var-file=/tmp/env.env -check-index $INDEX project.hcl
+nomad validate -var-file=env.env project.hcl
+nomad plan     -var-file=env.env project.hcl 2>&1 |sed 's/\(password[^ \t]*[ \t]*\).*/\1 ... /' |tee plan.log  ||  echo
+export INDEX=$(grep -E -o -- '-check-index [0-9]+' plan.log |tr -dc 0-9)
+nomad run      -var-file=env.env -check-index $INDEX project.hcl
 
-rm /tmp/env.env /tmp/plan.log
+rm env.env plan.log
 set +x
 
 echo deployed to https://$HOSTNAME
