@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-# xxx stop_review...
 
 if [ "$GITHUB_ACTIONS" ]; then
   # Add these as Secrets to your repository or organization:
@@ -31,8 +30,6 @@ if [ "$GITHUB_ACTIONS" ]; then
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
 fi
 
-
-# below is a direct copy from .gitlab-ci.yml, with any lead `-` chars removed for the YML steps
 
 
 ############################### NOMAD VARS SETUP ##############################
@@ -95,6 +92,13 @@ fi
 
 
 ############################### NOMAD VARS SETUP ##############################
+
+
+
+if [ "$1" = "stop" ]; then
+  nomad stop $NOMAD_VAR_SLUG
+  exit 0
+fi
 
 
 
