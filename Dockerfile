@@ -12,10 +12,7 @@ RUN mkdir -m777 /usr/local/sbin  && \
     rm        nomad.zip  && \
     chmod 777 nomad && \
     # make our CI/CD yml (which shells out) able to use `bash` instead of uber (sh)itty `sh` ;-)
-    apk add bash  && \
-    # for GitHub Actions (only) alt pipelines
-    mkdir -m 777  /__w  /__e  /__t
-
+    apk add bash
 
 COPY deploy.sh /
 USER deno

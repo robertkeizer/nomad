@@ -28,6 +28,8 @@ if [ "$GITHUB_ACTIONS" ]; then
 
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
+
+  whoami; pwd; touch /tmp/me; ls -l /tmp/me; ls -l .; ls -ld .; echo xxxd
 fi
 
 
