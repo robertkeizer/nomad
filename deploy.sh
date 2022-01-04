@@ -128,27 +128,28 @@ function main() {
 
 
 function github-setup() {
-  # Add these as Secrets to your repository or organization:
+  # Converts from GH env vars to GL-like env vars
+
+  # You must add these as Secrets to your repository or organization:
   #   NOMAD_ADDR
   #   NOMAD_TOKEN
   #   KUBE_INGRESS_BASE_DOMAIN
-  #
-  # If your repo is not public, you'll need to add a token to `docker login` with via *PASS var:
-  #   CI_R2_PASS
-  #   CI_R2_USER
 
-
-  # Convert from GH env vars to GL-like env vars
-  # eg: GITHUB_REPOSITORY=internetarchive/dyno
+  # Example of the (limited) GH ENV vars that are avail to us:
+  #  GITHUB_REPOSITORY=internetarchive/dyno
 
   # eg: ghcr.io  (registry host)
   export CI_REGISTRY="${REGISTRY?}"
+
   # eg: ghcr.io/internetarchive/dyno:main  (registry image)
   export GITHUB__IMAGE="${REGISTRY?}/${GITHUB_REPOSITORY?}:${GITHUB_REF_NAME?}"
+
   # eg: dyno  (project name)
   export CI_PROJECT_NAME=$(basename "${GITHUB_REPOSITORY?}")
+
   # eg: main  (branchname)  xxxd slugme
   export CI_COMMIT_REF_SLUG="${GITHUB_REF_NAME?}"
+
   # eg: internetarchive-dyno  xxxd better slugification
   export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr / -)
 
