@@ -138,8 +138,8 @@ function github-setup() {
   # Example of the (limited) GH ENV vars that are avail to us:
   #  GITHUB_REPOSITORY=internetarchive/dyno
 
-  # eg: ghcr.io  (registry host)
-  export CI_REGISTRY="${REGISTRY?}"
+  # (registry host)
+  export CI_REGISTRY=ghcr.io
 
   # eg: ghcr.io/internetarchive/dyno:main  (registry image)
   export CI_GITHUB_IMAGE="${REGISTRY?}/${GITHUB_REPOSITORY?}:${GITHUB_REF_NAME?}"
