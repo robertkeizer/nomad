@@ -160,4 +160,4 @@ function github-setup() {
 }
 
 
-main
+main "$1"
