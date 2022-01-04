@@ -26,6 +26,9 @@ if [ "$GITHUB_ACTIONS" ]; then
   # eg: internetarchive-dyno  xxxd better slugification
   export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr / -)
 
+  export CI_R2_PASS=xxxd
+  export CI_R2_USER=xxxd
+
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
 fi
