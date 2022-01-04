@@ -153,8 +153,10 @@ function github-setup() {
   # eg: internetarchive-dyno  xxxd better slugification
   export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr / -)
 
-  export CI_R2_PASS=${GITHUB_TOKEN?}
+  export CI_R2_PASS=${REGISTRY_TOKEN?}
   export CI_R2_USER=USERNAME
+
+  export KUBE_INGRESS_BASE_DOMAIN=${BASE_DOMAIN?}
 
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
