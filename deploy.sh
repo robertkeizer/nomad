@@ -128,14 +128,14 @@ function main() {
 
 
 function github-setup() {
-  # Converts from GH env vars to GL-like env vars
+  # Converts from GitHub env vars to GitLab-like env vars
 
   # You must add these as Secrets to your repository or organization:
   #   NOMAD_ADDR
   #   NOMAD_TOKEN
   #   KUBE_INGRESS_BASE_DOMAIN
 
-  # Example of the (limited) GH ENV vars that are avail to us:
+  # Example of the (limited) GitHub ENV vars that are avail to us:
   #  GITHUB_REPOSITORY=internetarchive/dyno
 
   # (registry host)
