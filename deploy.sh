@@ -40,6 +40,10 @@ function main() {
       if [ "$NOMAD_VAR_COUNT" = "" ]; then
         export NOMAD_VAR_COUNT=3
       fi
+      if [ "$NOMAD_PROD" != "" ]; then
+        # at present, this is only relevant for github repos
+        export NOMAD_TOKEN="$NOMAD_PROD"
+      fi
     fi
 
     if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$PROD_OR_MAIN" ]; then
@@ -130,10 +134,15 @@ function main() {
 function github-setup() {
   # Converts from GitHub env vars to GitLab-like env vars
 
-  # You must add these as Secrets to your repository or organization:
-  #   NOMAD_ADDR
+  # You must add these as Secrets to your repository:
   #   NOMAD_TOKEN
-  #   KUBE_INGRESS_BASE_DOMAIN
+  #   NOMAD_PROD (optional)
+
+  # You may override the defaults via passed-in args from your repository:
+  #   BASE_DOMAIN
+  #   NOMAD_ADDR
+  # https://github.com/internetarchive/cicd
+
 
   # Example of the (limited) GitHub ENV vars that are avail to us:
   #  GITHUB_REPOSITORY=internetarchive/dyno
