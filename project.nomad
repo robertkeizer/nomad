@@ -93,10 +93,9 @@ variable "HOSTNAMES" {
 
 variable "BIND_MOUNTS" {
   # Pass in a list of [host VM => container] direct pass through of readonly volumes, eg:
-  #   NOMAD_VAR_BIND_MOUNTS='["/opt/something", "/tmp/beer"]'
-  # As of now you have to pass in 2 and only 2... 🤦‍♀️
-  type = list(string)
-  default = ["/usr/games", "/usr/local/games"]
+  #   NOMAD_VAR_BIND_MOUNTS='[{type = "bind", readonly = true, source = "/usr/games", target = "/usr/games"}]'
+  type = list(map(string))
+  default = []
 }
 
 variable "PG" {
@@ -133,9 +132,11 @@ locals {
   # NOTE: 3rd arg is hcl2 quirk needed in case first two args are empty maps as well
   pvs = merge(var.PV, var.PV_DB, {})
 
-  # Make it so that later we can constrain deploy to server kind of _either_ pv or worker
-  # If either PV or PV_DB is in use, constrain deployment to the single "pv" node in the cluster
-  kinds = concat([for k in keys(local.pvs): "pv"], ["worker"])
+  # Make it so that later we can constrain deploy to server kind of _either_ pv or !pv kind server.
+  # If either PV or PV_DB is in use, constrain deployment to the single "pv" node in the cluster.
+  kinds = concat([for k in keys(local.pvs): "pv"])
+  # So if local.kinds is empty list (the default), set this to ["not pv"]; else set to []
+  kinds_not = slice(var.NOT_PV, 0, max(0, (1 - length(local.kinds))))
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
@@ -274,17 +275,7 @@ job "NOMAD_VAR_SLUG" {
             # We will 10x that for a **hard limit**
             memory_hard_limit = "${var.MEMORY * 10}"
 
-            mounts = [{
-              type = "bind"
-              readonly = true
-              source = "${var.BIND_MOUNTS[0]}"
-              target = "${var.BIND_MOUNTS[0]}"
-            }, {
-              type = "bind"
-              readonly = true
-              source = "${var.BIND_MOUNTS[1]}"
-              target = "${var.BIND_MOUNTS[1]}"
-            }]
+            mounts = var.BIND_MOUNTS
           }
 
           resources {
@@ -483,10 +474,19 @@ EOH
 
   # This allows us to more easily partition nodes (if desired) to run normal jobs like this (or not)
   dynamic "constraint" {
-    for_each = slice(local.kinds, 0, 1)
+    for_each = slice(local.kinds, 0, min(1, length(local.kinds)))
     content {
       attribute = "${meta.kind}"
-      set_contains = "${constraint.value}"
+      operator = "set_contains"
+      value = "${constraint.value}"
+    }
+  }
+  dynamic "constraint" {
+    for_each = slice(local.kinds_not, 0, min(1, length(local.kinds_not)))
+    content {
+      attribute = "${meta.kind}"
+      operator = "regexp"
+      value = "^(lb,*|worker,*)*$"
     }
   }
 
