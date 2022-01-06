@@ -136,7 +136,7 @@ locals {
   # If either PV or PV_DB is in use, constrain deployment to the single "pv" node in the cluster.
   kinds = concat([for k in keys(local.pvs): "pv"])
   # So if local.kinds is empty list (the default), set this to ["not pv"]; else set to []
-  kinds_not = slice(var.NOT_PV, 0, max(0, (1 - length(local.kinds))))
+  kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
