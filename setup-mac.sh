@@ -173,7 +173,7 @@ function setup-nomad() {
 
   # We'll put a loadbalancer on all cluster nodes
   # All jobs requiring a PV get put on first cluster node
-  local KIND='worker,lb,pv'
+  local KIND='lb,pv'
 
   local TOK_N=$(nomad operator keygen |tr -d ^ |cat)
 

@@ -19,7 +19,7 @@ client {
 
 /* variables we'll use below and their defaults
 
-KIND=worker
+KIND=lb
 HOME_NFS=/tmp/home
 TOK_N=set-via-setup.sh
 

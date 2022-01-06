@@ -309,9 +309,7 @@ client {
 
   # We'll put a loadbalancer on all cluster nodes
   # All jobs requiring a PV get put on first cluster node
-  local KIND='worker'
-  KIND="$KIND,lb"
-  KIND="$KIND,pv"
+  local KIND='lb,pv'
 
   echo '
   meta {

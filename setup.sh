@@ -269,9 +269,15 @@ function setup-nomad {
 
   # All jobs requiring a PV get put on first cluster node
   # We'll put a loadbalancer on all cluster nodes (unless installer wants otherwise)
-  export KIND=worker
-  [ ${COUNT?} -eq 0 ]             &&  export KIND="$KIND,pv"
-  [ ${COUNT?} -lt ${LB_COUNT?} ]  &&  export KIND="$KIND,lb"
+  export KIND=""
+  [ ${COUNT?} -eq 0 ]  &&  export KIND="pv"
+  if [ ${COUNT?} -lt ${LB_COUNT?} ]; then
+    if [ "$KIND" = "" ]; then
+      export KIND="lb"
+    else
+      export KIND="$KIND,lb"
+    fi
+  fi
 
 
   export HOME_NFS=/tmp/home
