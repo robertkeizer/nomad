@@ -16,7 +16,7 @@ variables {
 
   # Switch this, locally edit your /etc/hosts, or otherwise.  as is, webapp will appear at:
   #   https://internetarchive-bai-master.x.archive.org/
-  KUBE_INGRESS_BASE_DOMAIN = "x.archive.org"
+  BASE_DOMAIN = "x.archive.org"
 }
 
 # NOTE: "hello-world" should really be "${var.CI_PROJECT_PATH_SLUG}-${var.CI_COMMIT_REF_SLUG}"
@@ -39,7 +39,7 @@ job "hello-world" {
       }
       service {
         name = local.job_names[0]
-        tags = ["urlprefix-${var.CI_PROJECT_PATH_SLUG}-${var.CI_COMMIT_REF_SLUG}.${var.KUBE_INGRESS_BASE_DOMAIN}:443/"]
+        tags = ["urlprefix-${var.CI_PROJECT_PATH_SLUG}-${var.CI_COMMIT_REF_SLUG}.${var.BASE_DOMAIN}:443/"]
         port = "http"
         check {
           type     = "http"

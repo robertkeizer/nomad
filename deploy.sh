@@ -7,6 +7,11 @@ function main() {
 
   ############################### NOMAD VARS SETUP ##############################
 
+  # auto-convert from pre-2022 var name
+  if [ "$BASE_DOMAIN" = "" ]; then
+    export BASE_DOMAIN="$KUBE_INGRESS_BASE_DOMAIN"
+  fi
+
   # make a nice "slug" that is like [GROUP]-[PROJECT]-[BRANCH], each component also "slugged",
   # where "-main" or "-master" are omitted.  respect DNS limit of 63 max chars.
   export BRANCH_PART=""
@@ -17,7 +22,16 @@ function main() {
   #   ia-petabox-webdev-3939-fix-things.x.archive.org
   # however, if repo has list of 1+ custom hostnames it wants to use instead for main/master branch
   # review app, then use them and log during [deploy] phase the first hostname in the list
-  export HOSTNAME="${NOMAD_VAR_SLUG}.${KUBE_INGRESS_BASE_DOMAIN}"
+  export HOSTNAME="${NOMAD_VAR_SLUG}.${BASE_DOMAIN}"
+
+  # some archive.org specific production deployment detection & var updates first
+  if [ "$NOMAD_ADDR" = "" ]; then
+    if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://nom.us.archive.org:4646
+    elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.us.archive.org:4646
+    elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
+    elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
+    fi
+  fi
 
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_PRODUCTION_BRANCH" = "" ]; then
@@ -40,9 +54,9 @@ function main() {
       if [ "$NOMAD_VAR_COUNT" = "" ]; then
         export NOMAD_VAR_COUNT=3
       fi
-      if [ "$NOMAD_PROD" != "" ]; then
+      if [ "$NOMAD_TOKEN_PROD" != "" ]; then
         # at present, this is only relevant for github repos
-        export NOMAD_TOKEN="$NOMAD_PROD"
+        export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
       fi
     fi
 
@@ -141,7 +155,7 @@ function github-setup() {
 
   # You must add these as Secrets to your repository:
   #   NOMAD_TOKEN
-  #   NOMAD_PROD (optional)
+  #   NOMAD_TOKEN_PROD (optional)
 
   # You may override the defaults via passed-in args from your repository:
   #   BASE_DOMAIN
@@ -169,8 +183,6 @@ function github-setup() {
 
   export CI_R2_PASS=${REGISTRY_TOKEN?}
   export CI_R2_USER=USERNAME
-
-  export KUBE_INGRESS_BASE_DOMAIN=${BASE_DOMAIN?}
 
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
