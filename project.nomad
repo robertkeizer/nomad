@@ -112,6 +112,12 @@ variable "NOMAD_SECRETS" {
 }
 
 
+variable "NOT_PV" {
+  # this is temporary until NFS server is setup for persistent volumes
+  type = list(string)
+  default = ["not pv"]
+}
+
 
 locals {
   # Ignore all this.  really :)

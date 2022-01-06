@@ -68,6 +68,11 @@ function main() {
   fi
 
 
+  if [[ "$NOMAD_ADDR" == *crawl*.archive.org:* ]]; then
+    # this is temporary until NFS server is setup for persistent volumes
+    export NOMAD_VAR_NOT_PV='[]'
+  fi
+
   ############################### NOMAD VARS SETUP ##############################
 
 
