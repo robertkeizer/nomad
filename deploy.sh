@@ -184,6 +184,12 @@ function github-setup() {
   export CI_R2_PASS=${REGISTRY_TOKEN?}
   export CI_R2_USER=USERNAME
 
+
+  # unset any blank vars that come in from GH actions
+  for i in $(env |egrep '^NOMAD_VAR_[A-Z0-9_]+=$' |cut -f1 -d=); do
+    echo unset $i
+  done
+
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
 }
