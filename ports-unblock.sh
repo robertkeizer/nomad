@@ -19,9 +19,6 @@ echo '
 # nomad main port
 proto tcp dport 4646 ACCEPT;
 
-# vault main port
-proto tcp dport 8200 ACCEPT;
-
 
 # loadbalancer main ports - open to world for http/s std. ports
 proto tcp dport 443 ACCEPT;
@@ -50,6 +47,10 @@ proto tcp dport 8990 ACCEPT;
 #   services/scribe-c2:  7777 = "irc", 8889 = "reg"
 proto tcp dport 7777 ACCEPT;
 proto tcp dport 8889 ACCEPT;
+
+#   testing:
+proto tcp dport 8200 ACCEPT;
+
 
 # ===== CLUSTER OPEN ======================================================================
 # for nomad join
