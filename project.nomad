@@ -125,7 +125,7 @@ locals {
   # Too convoluted -- but remove map key/val for the port 5000
   # get numeric sort to work right by 0-padding to 5 digits so that keys() returns like: [x, y, 5000]
   ports_sorted = "${zipmap(formatlist("%05d", keys(var.PORTS)), values(var.PORTS))}"
-  ports_not_5000 = "${zipmap(
+  ports_extra = "${zipmap(
     formatlist("%d", slice(  keys(local.ports_sorted), 0, length(keys(var.PORTS)) - 1)),
     slice(values(local.ports_sorted), 0, length(keys(var.PORTS)) - 1))}"
 
@@ -227,7 +227,7 @@ job "NOMAD_VAR_SLUG" {
       }
 
       dynamic "service" {
-        for_each = local.ports_not_5000
+        for_each = local.ports_extra
         content {
           # service.key == portnumber
           # service.value == portname
