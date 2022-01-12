@@ -77,10 +77,14 @@ variable "PORTS" {
   # Note: these are all public ports, right out to the browser.
   # Note: for a single *nomad cluster* -- anything not 5000 must be
   #       *unique* across *all* projects deployed there.
+  # Note: if your port *only* talks TCP directly (or some variant of it, like IRC) and *not* HTTP,
+  #       then make your port number (key) *negative*.  Don't worry -- we'll use the abs() of it;
+  #       negative numbers makes them easily identifiable and partition-able below ;-)
   # Examples:
   #   NOMAD_VAR_PORTS='{ 5000 = "http" }'
   #   NOMAD_VAR_PORTS='{ 5000 = "http", 666 = "cool-ness" }'
   #   NOMAD_VAR_PORTS='{ 8888 = "http", 8012 = "backend", 7777 = "extra-service" }'
+  #   NOMAD_VAR_PORTS='{ 5000 = "http", -7777 = "irc" }'
   type = map(string)
   default = { 5000 = "http" }
 }
@@ -124,8 +128,11 @@ locals {
   # Ignore all this.  really :)
   job_names = [ "${var.SLUG}" ]
 
-  # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000)
-  ports_extra = {for k, v in var.PORTS: k => v if v != "http"}
+  # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000).
+  # Then split hashmap in two: one for HTTP port mappings; one for TCP (only; rare) port mappings.
+  ports_extra_tmp  = {for k, v in var.PORTS:                 k  => v  if v != "http"}
+  ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > 0}
+  ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < 0}
 
   # NOTE: 3rd arg is hcl2 quirk needed in case first two args are empty maps as well
   pvs = merge(var.PV, var.PV_DB, {})
@@ -179,7 +186,7 @@ job "NOMAD_VAR_SLUG" {
           for_each = merge(var.PORTS, var.PG, {})
           labels = [ "${port.value}" ]
           content {
-            to = port.key
+            to = abs(port.key)
           }
         }
       }
@@ -225,12 +232,30 @@ job "NOMAD_VAR_SLUG" {
       }
 
       dynamic "service" {
-        for_each = local.ports_extra
+        for_each = local.ports_extra_http
         content {
           # service.key == portnumber
           # service.value == portname
           name = "${var.SLUG}-${service.value}"
           tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
+          port = "${service.value}"
+          check {
+            name     = "alive"
+            type     = "${var.CHECK_PROTOCOL}"
+            path     = "${var.CHECK_PATH}"
+            port     = "http"
+            interval = "10s"
+            timeout  = "2s"
+          }
+        }
+      }
+      dynamic "service" {
+        for_each = local.ports_extra_tcp
+        content {
+          # service.key == portnumber
+          # service.value == portname
+          name = "${var.SLUG}-${service.value}"
+          tags = ["urlprefix-:${service.key} proto=tcp"]
           port = "${service.value}"
           check {
             name     = "alive"
