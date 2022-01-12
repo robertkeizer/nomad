@@ -72,9 +72,11 @@ variable "PV_DB" {
 }
 
 variable "PORTS" {
-  # Note: to use a secondary port > 5000, right now, you have to make the main/http port be
-  # greater than it.  Additionally, these are all public ports, right out to the browser.
-  # So for a *nomad cluster* -- anything not 5000 must be unique across all projects deployed there.
+  # You must have at least one key/value pair, with a single value of 'http'.
+  # Each value is a string that refers to your port later in the project jobspec.
+  # Note: these are all public ports, right out to the browser.
+  # Note: for a single *nomad cluster* -- anything not 5000 must be
+  #       *unique* across *all* projects deployed there.
   # Examples:
   #   NOMAD_VAR_PORTS='{ 5000 = "http" }'
   #   NOMAD_VAR_PORTS='{ 5000 = "http", 666 = "cool-ness" }'
@@ -122,12 +124,8 @@ locals {
   # Ignore all this.  really :)
   job_names = [ "${var.SLUG}" ]
 
-  # Too convoluted -- but remove map key/val for the port 5000
-  # get numeric sort to work right by 0-padding to 5 digits so that keys() returns like: [x, y, 5000]
-  ports_sorted = "${zipmap(formatlist("%05d", keys(var.PORTS)), values(var.PORTS))}"
-  ports_extra = "${zipmap(
-    formatlist("%d", slice(  keys(local.ports_sorted), 0, length(keys(var.PORTS)) - 1)),
-    slice(values(local.ports_sorted), 0, length(keys(var.PORTS)) - 1))}"
+  # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000)
+  ports_extra = {for k, v in var.PORTS: k => v if v != "http"}
 
   # NOTE: 3rd arg is hcl2 quirk needed in case first two args are empty maps as well
   pvs = merge(var.PV, var.PV_DB, {})
@@ -232,8 +230,7 @@ job "NOMAD_VAR_SLUG" {
           # service.key == portnumber
           # service.value == portname
           name = "${var.SLUG}-${service.value}"
-          tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
-          canary_tags = ["urlprefix-canary-${var.HOSTNAMES[0]}:${service.key}/"]
+          tags = ["urlprefix-:${service.key} proto=tcp"]
           port = "${service.value}"
           check {
             name     = "alive"
