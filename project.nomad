@@ -230,7 +230,7 @@ job "NOMAD_VAR_SLUG" {
           # service.key == portnumber
           # service.value == portname
           name = "${var.SLUG}-${service.value}"
-          tags = ["urlprefix-:${service.key} proto=tcp"]
+          tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
           port = "${service.value}"
           check {
             name     = "alive"
