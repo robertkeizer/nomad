@@ -147,6 +147,8 @@ variables:
 #### More customizations
 There are even more, less common, ways to customize your deploys.
 
+With other variables, like `NOMAD_VAR_PORTS`, you can use dynamic port allocation, setup daemons that use raw TCP, and more.
+
 Please see the top area of [project.nomad](project.nomad) for "Persistent Volumes" (think a "disk" that survives container restarts), Postgres DB setup, additional open ports into your webapp, and more.
 
 See also [this section](#optional-add-ons-to-your-project) below.
