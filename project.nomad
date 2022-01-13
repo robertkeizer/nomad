@@ -74,14 +74,24 @@ variable "PV_DB" {
 variable "PORTS" {
   # You must have at least one key/value pair, with a single value of 'http'.
   # Each value is a string that refers to your port later in the project jobspec.
+  #
   # Note: these are all public ports, right out to the browser.
+  #
   # Note: for a single *nomad cluster* -- anything not 5000 must be
   #       *unique* across *all* projects deployed there.
+  #
+  # Note: use -1 for your port to tell nomad & docker to *dynamically* assign you a random high port
+  #       then your repo can read the environment variable: NOMAD_PORT_http upon startup to know
+  #       what your main daemon HTTP listener should listen on.
+  #
   # Note: if your port *only* talks TCP directly (or some variant of it, like IRC) and *not* HTTP,
-  #       then make your port number (key) *negative*.  Don't worry -- we'll use the abs() of it;
+  #       then make your port number (key) *negative AND less than -1*.
+  #       Don't worry -- we'll use the abs() of it;
   #       negative numbers makes them easily identifiable and partition-able below ;-)
+  #
   # Examples:
   #   NOMAD_VAR_PORTS='{ 5000 = "http" }'
+  #   NOMAD_VAR_PORTS='{ -1 = "http" }'
   #   NOMAD_VAR_PORTS='{ 5000 = "http", 666 = "cool-ness" }'
   #   NOMAD_VAR_PORTS='{ 8888 = "http", 8012 = "backend", 7777 = "extra-service" }'
   #   NOMAD_VAR_PORTS='{ 5000 = "http", -7777 = "irc" }'
@@ -130,9 +140,13 @@ locals {
 
   # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000).
   # Then split hashmap in two: one for HTTP port mappings; one for TCP (only; rare) port mappings.
+  ports_main       = {for k, v in var.PORTS:                 k  => v  if v  = "http"}
   ports_extra_tmp  = {for k, v in var.PORTS:                 k  => v  if v != "http"}
-  ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > 0}
-  ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < 0}
+  ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > -2}
+  ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < -1}
+
+  # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
+  ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, var.PG, {})
 
   # NOTE: 3rd arg is hcl2 quirk needed in case first two args are empty maps as well
   pvs = merge(var.PV, var.PV_DB, {})
@@ -183,10 +197,10 @@ job "NOMAD_VAR_SLUG" {
         dynamic "port" {
           # port.key == portnumber
           # port.value == portname
-          for_each = merge(var.PORTS, var.PG, {})
+          for_each = local.ports_all
           labels = [ "${port.value}" ]
           content {
-            to = abs(port.key)
+            to = port.key
           }
         }
       }
