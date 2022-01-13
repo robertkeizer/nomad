@@ -140,7 +140,7 @@ locals {
 
   # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000).
   # Then split hashmap in two: one for HTTP port mappings; one for TCP (only; rare) port mappings.
-  ports_main       = {for k, v in var.PORTS:                 k  => v  if v  = "http"}
+  ports_main       = {for k, v in var.PORTS:                 k  => v  if v == "http"}
   ports_extra_tmp  = {for k, v in var.PORTS:                 k  => v  if v != "http"}
   ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > -2}
   ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < -1}
