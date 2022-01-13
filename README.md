@@ -168,6 +168,9 @@ Setting up your repo to deploy to production is easy!
 - Make a new branch named `production` (presumably from your repo's latest `main` or `master` branch)
   - It should now deploy your project to a different `NOMAD_ADDR` url
   - Your default hostname domain will change from `.dev.archive.org` to `.prod.archive.org`
+- [GitLab only] - [Protect the `production` branch](https://docs.gitlab.com/ee/user/project/protected_branches.html)
+  - suggest using same settings as your `main` or `master` (or default) branch
+![Protect a branch](etc/protect.jpg)
 
 
 ## Laptop access
