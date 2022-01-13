@@ -55,8 +55,8 @@ function main() {
         export NOMAD_VAR_COUNT=3
       fi
       if [ "$NOMAD_TOKEN_PROD" != "" ]; then
-        # at present, this is only relevant for github repos
         export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
+        echo using nomad production token
       fi
     fi
 
