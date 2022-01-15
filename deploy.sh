@@ -183,11 +183,9 @@ function github-setup() {
 
   export CI_R2_PASS=${REGISTRY_TOKEN?}
   export CI_R2_USER=USERNAME
-  echo "PRIVATE_REPO=$PRIVATE_REPO"
   if [ "$PRIVATE_REPO" = "false" ]; then
     # temporarily turn off docker login before pulling registry image, since it seems like the TOKEN
     # expires and makes re-deployment due to containers changing hosts not work
-    echo fml
     unset CI_R2_PASS
   fi
 
