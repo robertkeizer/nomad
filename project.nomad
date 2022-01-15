@@ -8,6 +8,8 @@ variables {
   CI_COMMIT_REF_SLUG = "master"                             # branch name, slugged
   CI_COMMIT_SHA = "latest"                                  # repo's commit for current pipline
   CI_PROJECT_PATH_SLUG = "internetarchive-bai"              # repo and group it is part of, slugged
+
+  # NOTE: if repo is public, you can ignore these next 4 registry related vars
   CI_REGISTRY_USER = ""                                     # set for each pipeline and ..
   CI_REGISTRY_PASSWORD = ""                                 # .. allows pull from private registry
   # optional (but suggested!) CI/CD group or project vars:
@@ -157,6 +159,12 @@ locals {
   # So if local.kinds is empty list (the default), set this to ["not pv"]; else set to []
   kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
 
+  # GitLab docker login user/pass are pretty unstable.  If admin has set `..R2..` keys in
+  # the group [Settings] [CI/CD] [Variables] - then use deploy token-based alternatives.
+  # Effectively use CI_R2_* variant if set; else use CI_REGISTRY_* PAIR
+  docker_user = [for s in [var.CI_R2_USER, var.CI_REGISTRY_USER    ] : s if s != ""]
+  docker_pass = [for s in [var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
+
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
   kv = join("\n", [for k, v in var.NOMAD_SECRETS : join("", concat([k, "='", v, "'"]))])
@@ -295,14 +303,14 @@ job "NOMAD_VAR_SLUG" {
             image_pull_timeout = "20m"
             network_mode = "${var.NETWORK_MODE}"
 
-            auth {
-              # GitLab docker login user/pass are pretty unstable.  If admin has set `..R2..` keys in
-              # the group [Settings] [CI/CD] [Variables] - then use deploy token-based alternatives.
-              server_address = "${var.CI_REGISTRY}"
+            dynamic "auth" {
+              for_each = local.docker_pass
+              content {
+                server_address = "${var.CI_REGISTRY}"
 
-              # Effectively use CI_R2_* variant if set; else use CI_REGISTRY_* PAIR
-              username = element([for s in [var.CI_R2_USER, var.CI_REGISTRY_USER] : s if s != ""], 0)
-              password = element([for s in [var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""], 0)
+                username = element(local.docker_user, 0)
+                password = "${auth.value}"
+              }
             }
 
             ports = [for portnumber, portname in var.PORTS : portname]
