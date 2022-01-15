@@ -159,11 +159,16 @@ locals {
   # So if local.kinds is empty list (the default), set this to ["not pv"]; else set to []
   kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
 
+  # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
+  docker_image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
+
   # GitLab docker login user/pass are pretty unstable.  If admin has set `..R2..` keys in
   # the group [Settings] [CI/CD] [Variables] - then use deploy token-based alternatives.
   # Effectively use CI_R2_* variant if set; else use CI_REGISTRY_* PAIR
   docker_user = [for s in [var.CI_R2_USER, var.CI_REGISTRY_USER    ] : s if s != ""]
   docker_pass = [for s in [var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
+  # Make [1] (an array of number 1) if all docker password vars are ""
+  docker_no_login = [for s in join("", [var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD]): 1 if s = ""]
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
@@ -297,29 +302,40 @@ job "NOMAD_VAR_SLUG" {
         content {
           driver = "docker"
 
-          config {
-            # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
-            image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
-            image_pull_timeout = "20m"
-            network_mode = "${var.NETWORK_MODE}"
+          # UGH - have to copy/paste this next block twice -- first for no docker login needed;
+          #       second for docker login needed (job spec will assemble in just one).
+          #       This is because we can't put dynamic content *inside* the 'config { .. }' stanza.
+          dynamic "config" {
+            foreach = local.docker_no_login
+            content {
+              image = "${var.docker_image}"
+              image_pull_timeout = "20m"
+              network_mode = "${var.NETWORK_MODE}"
+              ports = [for portnumber, portname in var.PORTS : portname]
+              mounts = var.BIND_MOUNTS
+              # The MEMORY var now becomes a **soft limit**
+              # We will 10x that for a **hard limit**
+              memory_hard_limit = "${var.MEMORY * 10}"
+            }
+          }
+          dynamic "config" {
+            foreach = slice(local.docker_pass, 0, min(1, length(local.docker_pass)))
+            content {
+              image = "${var.docker_image}"
+              image_pull_timeout = "20m"
+              network_mode = "${var.NETWORK_MODE}"
+              ports = [for portnumber, portname in var.PORTS : portname]
+              mounts = var.BIND_MOUNTS
+              # The MEMORY var now becomes a **soft limit**
+              # We will 10x that for a **hard limit**
+              memory_hard_limit = "${var.MEMORY * 10}"
 
-            dynamic "auth" {
-              for_each = local.docker_pass
-              content {
+              auth {
                 server_address = "${var.CI_REGISTRY}"
-
                 username = element(local.docker_user, 0)
-                password = "${auth.value}"
+                password = "${config.value}"
               }
             }
-
-            ports = [for portnumber, portname in var.PORTS : portname]
-
-            # The MEMORY var now becomes a **soft limit**
-            # We will 10x that for a **hard limit**
-            memory_hard_limit = "${var.MEMORY * 10}"
-
-            mounts = var.BIND_MOUNTS
           }
 
           resources {
