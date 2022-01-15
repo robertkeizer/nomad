@@ -308,7 +308,7 @@ job "NOMAD_VAR_SLUG" {
           dynamic "config" {
             for_each = local.docker_no_login
             content {
-              image = "${var.docker_image}"
+              image = "${local.docker_image}"
               image_pull_timeout = "20m"
               network_mode = "${var.NETWORK_MODE}"
               ports = [for portnumber, portname in var.PORTS : portname]
@@ -321,7 +321,7 @@ job "NOMAD_VAR_SLUG" {
           dynamic "config" {
             for_each = slice(local.docker_pass, 0, min(1, length(local.docker_pass)))
             content {
-              image = "${var.docker_image}"
+              image = "${local.docker_image}"
               image_pull_timeout = "20m"
               network_mode = "${var.NETWORK_MODE}"
               ports = [for portnumber, portname in var.PORTS : portname]
