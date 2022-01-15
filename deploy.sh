@@ -183,6 +183,10 @@ function github-setup() {
 
   export CI_R2_PASS=${REGISTRY_TOKEN?}
   export CI_R2_USER=USERNAME
+  echo PRIVATE_REPO=${PRIVATE_REPO?}
+  # temporarily turn off since seems like the TOKEN expires and makes re-deployment due to
+  # containers changing hosts not work
+  unset CI_R2_PASS
 
 
   # unset any blank vars that come in from GH actions
