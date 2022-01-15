@@ -306,7 +306,7 @@ job "NOMAD_VAR_SLUG" {
           #       second for docker login needed (job spec will assemble in just one).
           #       This is because we can't put dynamic content *inside* the 'config { .. }' stanza.
           dynamic "config" {
-            foreach = local.docker_no_login
+            for_each = local.docker_no_login
             content {
               image = "${var.docker_image}"
               image_pull_timeout = "20m"
@@ -319,7 +319,7 @@ job "NOMAD_VAR_SLUG" {
             }
           }
           dynamic "config" {
-            foreach = slice(local.docker_pass, 0, min(1, length(local.docker_pass)))
+            for_each = slice(local.docker_pass, 0, min(1, length(local.docker_pass)))
             content {
               image = "${var.docker_image}"
               image_pull_timeout = "20m"
