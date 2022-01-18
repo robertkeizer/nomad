@@ -389,6 +389,27 @@ job "NOMAD_VAR_SLUG" {
       } # end dynamic "task"
 
       dynamic "task" {
+        # If we have a public repo where we omit `docker login` credentials, it seems like
+        # it _also_ skips `docker pull` step (sigh).
+        # Not a problem for GitLab since the docker image _version_ is based on commit's sha hash;
+        # But a problem for GitHub since the docker image _version_ is the branch name.
+        # So we'll do a `docker pull` 'prestart' job before the main container gets running.
+        for_each = local.docker_no_login
+        labels = ["dockerpull"]
+        content {
+          driver = "exec"
+          config {
+            command = "/usr/bin/docker"
+            args = [ "pull", "${local.docker_image}" ]
+          }
+          lifecycle {
+            hook = "prestart"
+            sidecar = false
+          }
+        }
+      }
+
+      dynamic "task" {
         # when a job has CI/CD secrets - eg: CI/CD Variables named like "NOMAD_SECRET_..."
         # then here is where we dynamically insert them into consul (as a single JSON k/v string)
         for_each = slice(keys(var.NOMAD_SECRETS), 0, min(1, length(keys(var.NOMAD_SECRETS))))
@@ -397,9 +418,7 @@ job "NOMAD_VAR_SLUG" {
           driver = "exec"
           config {
             command = "/usr/bin/consul"
-            args = [
-              "kv", "put", var.SLUG, local.kv
-            ]
+            args = [ "kv", "put", var.SLUG, local.kv ]
           }
           lifecycle {
             hook = "prestart"
