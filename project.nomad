@@ -316,10 +316,6 @@ job "NOMAD_VAR_SLUG" {
               # The MEMORY var now becomes a **soft limit**
               # We will 10x that for a **hard limit**
               memory_hard_limit = "${var.MEMORY * 10}"
-              # Since we omit `docker login` credentials, seems it _also_ skips `docker pull` step.
-              # Not a GitLab problem since the docker image _version_ is based on commit's sha hash;
-              # But a GitHub problem since the docker image _version_ is the branch name.
-              force_pull = true
             }
           }
           dynamic "config" {
@@ -391,6 +387,28 @@ job "NOMAD_VAR_SLUG" {
           }
         }
       } # end dynamic "task"
+
+      dynamic "task" {
+        # If we have a public repo where we omit `docker login` credentials, it seems like
+        # it _also_ skips `docker pull` step (sigh).
+        # Not a problem for GitLab since the docker image _version_ is based on commit's sha hash;
+        # But a problem for GitHub since the docker image _version_ is the branch name.
+        # So we'll do a `docker pull` 'prestart' job before the main container gets running.
+        for_each = local.docker_no_login
+        labels = ["dockerpull"]
+        content {
+          driver = "docker"
+          config {
+            image = "docker"
+            args = [ "pull", "${local.docker_image}" ]
+            volumes = [ "/var/run/docker.sock:/var/run/docker.sock" ]
+          }
+          lifecycle {
+            hook = "prestart"
+            sidecar = false
+          }
+        }
+      }
 
       dynamic "task" {
         # when a job has CI/CD secrets - eg: CI/CD Variables named like "NOMAD_SECRET_..."
