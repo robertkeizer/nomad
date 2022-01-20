@@ -570,5 +570,18 @@ EOH
     }
   }
 
+  # This next part is for GitHub repos.  Since the GH docker image name DOESNT change each commit,
+  # yet we need to ensure the jobspec sent to nomad "changes" each commit/pipeline,
+  # auto-insert a random string.
+  # Without this, nomad thinks it has already deployed the relevant registry image and jobspec,
+  # referenced by and automatically created by the pipeline.
+  dynamic "meta" {
+    for_each = docker_no_login
+    content {
+      randomly = uuidv4()
+    }
+  }
+
+
   # JOB.NOMAD--INSERTS-HERE
 } # end job
