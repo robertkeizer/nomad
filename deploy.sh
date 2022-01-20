@@ -135,7 +135,11 @@ function main() {
     # (w/ NOMAD_SECRET_ prefix omitted), then convert to HCL style hashmap string (chars ":" => "=")
     echo NOMAD_SECRETS=$(deno eval 'console.log(JSON.stringify(Object.fromEntries(Object.entries(Deno.env.toObject()).filter(([k, v]) => k.startsWith("NOMAD_SECRET_")).map(([k ,v]) => [k.replace(/^NOMAD_SECRET_/,""), v]))))' | sed 's/":"/"="/g') >| env.env
   else
-    echo "$NOMAD_SECRETS" >| env.env
+    # this alternate clause allows GitHub Actions to send in repo secrets to us, as a single secret
+    # variable, as our JSON-like hashmap of keys (secret/env var names) and values
+    cat >| env.env << EOF
+NOMAD_SECRETS=$NOMAD_SECRETS
+EOF
   fi
   # copy current env vars starting with "CI_" to "NOMAD_VAR_CI_" variants & inject them into shell
   deno eval 'Object.entries(Deno.env.toObject()).map(([k, v]) => console.log("export NOMAD_VAR_"+k+"="+JSON.stringify(v)))' |egrep '^export NOMAD_VAR_CI_' >| ci.env
