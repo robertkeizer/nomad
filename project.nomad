@@ -576,7 +576,7 @@ EOH
   # Without this, nomad thinks it has already deployed the relevant registry image and jobspec,
   # referenced by and automatically created by the pipeline.
   dynamic "meta" {
-    for_each = docker_no_login
+    for_each = local.docker_no_login
     content {
       randomly = uuidv4()
     }
