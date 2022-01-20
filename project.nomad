@@ -56,6 +56,8 @@ variables {
   # only used for github repos
   CI_GITHUB_IMAGE = ""
 
+  CONSUL_PATH = "/usr/bin/consul"
+
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
 }
@@ -398,7 +400,7 @@ job "NOMAD_VAR_SLUG" {
         content {
           driver = "exec"
           config {
-            command = "/usr/bin/consul"
+            command = var.CONSUL_PATH
             args = [ "kv", "put", var.SLUG, local.kv ]
           }
           lifecycle {
