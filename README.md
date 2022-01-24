@@ -303,15 +303,15 @@ echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*
 
 ---
 
-## GitHub repo integrations
-### GitHub Actions
+# GitHub repo integrations
+## GitHub Actions
 - We use GitHub Actions to create [build], [test], and [deploy] CI/CD pipelines.
 - There is a lot of great information and links to example repos here: https://github.com/internetarchive/cicd#readme
 
-### GitHub Customizing
+## GitHub Customizing
 - You can use the same `NOMAD_VAR_` options above to tailor your deploy in the [#Customizing](#Customizing) section above.  [Documentation and examples here](https://github.com/internetarchive/cicd#readme).
 
-### GitHub Secrets
+## GitHub Secrets
 - You can add GitHub secrets to your repo from the GitHub GUI.  You then need to get those secrets to pass through to the [deploy] phase, using the `NOMAD_SECRETS` setting in the GitHub Actions workflow yaml file.
 - Here is an example GH repo that passes 2 GH secrets into the [deploy] phase.  Each secret will wind up as environment variable that your servers can read, or your `RUN`/`CMD` entrypoint can read:
   - https://github.com/traceypooh/staticman/blob/main/.github/workflows/cicd.yml
