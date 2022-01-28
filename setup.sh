@@ -175,6 +175,7 @@ function setup-consul-and-certs() {
   setup-misc
   setup-certs
   setup-consul
+  setup-404-page
 }
 
 
@@ -425,6 +426,15 @@ function setup-certs() {
   sudo cp $CRT              /opt/nomad/tls/tls.crt
   sudo cp $KEY              /opt/nomad/tls/tls.key
   sudo chmod -R go-rwx      /opt/nomad/tls
+}
+
+
+function setup-404-page() {
+  # sets up a "hostname not found" custom 404 page for fabio/LB to emit
+  if [[ "${FIRST_FQDN?}" == *archive.org* ]]; then
+    getr etc/archive.org/404.min.html
+    consul kv put 'fabio/noroute.html' $(cat /tmp/404.min.html)
+  fi
 }
 
 
