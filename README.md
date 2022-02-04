@@ -52,8 +52,10 @@ NOMAD_VAR_BIND_MOUNTS
 NOMAD_VAR_CHECK_PATH
 NOMAD_VAR_CHECK_PROTOCOL
 NOMAD_VAR_CHECK_TIMEOUT
+NOMAD_VAR_CONSUL_PATH
 NOMAD_VAR_COUNT
 NOMAD_VAR_CPU
+NOMAD_VAR_FORCE_PULL
 NOMAD_VAR_HEALTH_TIMEOUT
 NOMAD_VAR_HOME
 NOMAD_VAR_HOSTNAMES
@@ -144,6 +146,13 @@ Similar to prior example, but you can have your main deployment respond to multi
 variables:
   NOMAD_VAR_HOSTNAMES: '["www.example.com", "store.example.com"]'
 ```
+#### Force `docker pull` before container starts
+If your deployment's job spec doesn't change between pipelines for some reason, you can set this to ensure `docker pull` always happens before your container starts up.  A good example where you might see this is a periodic/batch/cron process that fires up a pipeline without any repository commit.  Depending on your workflow and `Dockerfile` from there, if you see "stale" versions of containers, use this customization.
+```yaml
+variables:
+  NOMAD_VAR_FORCE_PULL: true
+```
+
 #### More customizations
 There are even more, less common, ways to customize your deploys.
 

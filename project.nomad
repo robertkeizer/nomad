@@ -58,6 +58,8 @@ variables {
 
   CONSUL_PATH = "/usr/bin/consul"
 
+  FORCE_PULL = false
+
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
 }
@@ -339,6 +341,8 @@ job "NOMAD_VAR_SLUG" {
                 username = element(local.docker_user, 0)
                 password = "${config.value}"
               }
+
+              force_pull = ${var.FORCE_PULL}
             }
           }
 
