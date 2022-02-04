@@ -342,7 +342,7 @@ job "NOMAD_VAR_SLUG" {
                 password = "${config.value}"
               }
 
-              force_pull = ${var.FORCE_PULL}
+              force_pull = var.FORCE_PULL
             }
           }
 
