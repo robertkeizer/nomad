@@ -150,7 +150,7 @@ variables:
 If your deployment's job spec doesn't change between pipelines for some reason, you can set this to ensure `docker pull` always happens before your container starts up.  A good example where you might see this is a periodic/batch/cron process that fires up a pipeline without any repository commit.  Depending on your workflow and `Dockerfile` from there, if you see "stale" versions of containers, use this customization.
 ```yaml
 variables:
-  NOMAD_VAR_FORCE_PULL: true
+  NOMAD_VAR_FORCE_PULL: 'true'
 ```
 
 #### More customizations
