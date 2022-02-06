@@ -53,7 +53,7 @@ function main() {
   customize
 
   sudo rm /opt/consul/serf/local.keyring
-  sudo '$SCTL' restart consul
+  sudo $SCTL restart consul
 
   finish
 }
@@ -106,11 +106,9 @@ function config() {
 function baseline() {
   cd /tmp
 
-  apt-get -yqq --no-install-recommends install  sudo
+  apt-get -yqq --no-install-recommends install  sudo  rsync  dnsutils  supervisor
+
   $MYDIR/install-docker-ce.sh
-
-  apt-get -yqq --no-install-recommends install  rsync  dnsutils  supervisor
-
 
   # install binaries and service files
   #   eg: /usr/bin/nomad  /etc/nomad.d/nomad.hcl  /usr/lib/systemd/system/nomad.service
@@ -327,11 +325,6 @@ function setup-misc() {
 function setup-daemons() {
   # get services ready to go
   echo "
-[program:docker]
-command=/usr/bin/dockerd
-autorestart=true
-startsecs=10
-
 [program:nomad]
 command=/usr/bin/nomad  agent -config     /etc/nomad.d
 autorestart=true
