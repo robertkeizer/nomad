@@ -2,6 +2,8 @@ FROM ubuntu:focal
 
 # docker build --network=host -t hind -f Dockerfile.hind  .
 
+# docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock --rm -it hind zsh
+
 # docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock hind
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -18,12 +20,12 @@ RUN apt-get -yqq update  && \
     apt-get -yqq update  && \
     apt-get -yqq install  nomad  consul
 
-
 WORKDIR /app
+COPY     install-docker-ce.sh .
+RUN /app/install-docker-ce.sh
+
 COPY . .
 
-# xxxx combine these
-RUN /app/install-docker-ce.sh
 RUN /app/hind/build.sh
 
 CMD /bin/zsh # xxxx supervisord

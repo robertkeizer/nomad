@@ -26,11 +26,7 @@ function main() {
 
 
 function config() {
-  local HOSTY=$(hostname -f)
-
-  export  NOMAD_ADDR="http://${HOSTY?}:4646" # xxxx we'll use https everywhere once caddy is up...
-  export CONSUL_ADDR="http://localhost:8500"
-  export  FABIO_ADDR="http://localhost:9998"
+  export  NOMAD_ADDR="http://localhost:4646"
   export SCTL=supervisorctl
 
   # find daemon config files
@@ -60,31 +56,6 @@ function finish() {
   sleep 30
 
   nomad run /app/hind/fabio.hcl
-
-  echo "
-
-💥 CONGRATULATIONS!  Your cluster is setup. 💥
-
-You can get started with the UI for: nomad consul fabio here:
-
-Nomad  (deployment: managements & scheduling):
-( https://www.nomadproject.io )
-$NOMAD_ADDR
-( login with NOMAD_TOKEN from $HOME/.config/nomad - keep this safe!)
-
-Consul (networking: service discovery & health checks, service mesh, envoy, secrets storage):
-( https://www.consul.io )
-$CONSUL_ADDR
-
-Fabio  (routing: load balancing, ingress/edge router, https and http2 termination (to http))
-( https://fabiolb.net )
-$FABIO_ADDR
-
-
-
-For localhost urls above - see 'nom-tunnel' alias here:
-  https://gitlab.com/internetarchive/nomad/-/blob/master/aliases
-"
 }
 
 
@@ -110,8 +81,6 @@ function setup-nomad() {
   mkdir -m777 -p /pv
 
   echo '
-name = "'$(hostname -s)'"
-
 server {
 }
 
