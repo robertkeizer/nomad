@@ -160,7 +160,7 @@ autorestart=true
 startsecs=10
 
 [program:fabio]
-command=/bin/bash -c 'sleep 30; source /root/.config/nomad; nomad stop -purge fabio; nomad run /app/hind/fabio.hcl'
+command=/bin/bash -c 'sleep 20; source /root/.config/nomad; nomad stop -purge fabio; sleep 10; nomad run /app/hind/fabio.hcl'
 autorestart=false
 " >| /etc/supervisor/conf.d/hind.conf
   supervisord

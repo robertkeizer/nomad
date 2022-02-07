@@ -1,9 +1,5 @@
 FROM ubuntu:focal
 
-# docker build --network=host -t hind -f Dockerfile.hind  .
-
-# docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock --rm -it hind zsh
-
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
