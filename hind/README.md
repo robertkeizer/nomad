@@ -34,7 +34,28 @@ docker build --network=host -t hind -f Dockerfile.hind  .
 
 # fire off the container in the background
 docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock --name hind -d hind
-
-# get your nomad access credentials into a shell on the VM, so you can run `nomad status`, etc.
-docker exec -it hind zsh -c 'cat /root/.config/nomad'
 ```
+
+## Nomad credentils
+Get your nomad access credentials (`NOMAD_ADDR` and `NOMAD_TOKEN`) from a shell on the VM, so you can run `nomad status` anywhere you have downloaded `nomad` binary (include home mac/laptop etc.)
+```bash
+docker exec -it hind zsh -c 'cat /root/.config/nomad' | perl -pe s/localhost/$(hostname -f)/
+```
+
+You can also open the `NOMAD_ADDR` (above) in a browser and enter in your `NOMAD_TOKEN`
+
+## GUI, Monitoring, Interacting
+- see [../README.md](../README.md) for lots of ways to work with your deploys.  There you can find details on how to check a deploy's status and logs, `ssh` into it, customized deploys, and more.
+- You can setup an `ssh` tunnel thru your VM so that you can see `consul` and `fabio` in a browser, eg:
+
+```bash
+nom-tunnel () {
+	[ "$NOMAD_ADDR" = "" ] && echo "Please set NOMAD_ADDR environment variable first" && return
+  local HOST=$(echo "$NOMAD_ADDR" | sed 's/:4646\/*$//' |sed 's/^https*:\/\///')
+  ssh -fNA -L 8500:$HOST:8500 -L 9998:$HOST:9998 $HOST
+}
+```
+
+- Then run `nom-tunnel` and you can see with a browser:
+  - `fabio`  http://localhost:9998/
+  - `consul` http://localhost:8500/
