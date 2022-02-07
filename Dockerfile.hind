@@ -1,0 +1,27 @@
+FROM ubuntu:focal
+
+# docker build --network=host -t hind -f Dockerfile.hind  .
+
+# docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock hind
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+RUN apt-get -yqq update  && \
+    apt-get -yqq --no-install-recommends install  \
+      zsh  sudo  rsync  dnsutils  supervisor  curl  wget \
+      apt-transport-https  ca-certificates  software-properties-common  gpgv2  gpg-agent && \
+    # install binaries and service files
+    #   eg: /usr/bin/nomad  /etc/nomad.d/nomad.hcl  /usr/lib/systemd/system/nomad.service
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -  && \
+    apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
+    apt-get -yqq update  && \
+    apt-get -yqq install  nomad  consul
+
+
+WORKDIR /app
+COPY . .
+
+RUN /app/install-docker-ce.sh  &&  /app/hind xxxx
+
+CMD /bin/zsh # xxxx supervisord
