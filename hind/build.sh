@@ -18,8 +18,6 @@ function main() {
 
   # customize nomad & consul
   customize
-
-  finish
 }
 
 
@@ -47,14 +45,6 @@ function customize() {
   echo "================================================================================"
   ( set -x; nomad node status )
   echo "================================================================================"
-}
-
-
-function finish() {
-  sleep 30
-
-  mkdir -p -m755 /etc/fabio/ssl
-  nomad run /app/hind/fabio.hcl
 }
 
 
@@ -156,6 +146,8 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 
 function setup-daemons() {
   # get services ready to go
+  mkdir -p -m755 /etc/fabio/ssl
+
   echo "
 [program:nomad]
 command=/usr/bin/nomad  agent -config     /etc/nomad.d
@@ -166,6 +158,10 @@ startsecs=10
 command=/usr/bin/consul agent -config-dir=/etc/consul.d/
 autorestart=true
 startsecs=10
+
+[program:fabio]
+command=/bin/bash -c 'sleep 30; source /root/.config/nomad; nomad stop -purge fabio; nomad run /app/hind/fabio.hcl'
+autorestart=false
 " >| /etc/supervisor/conf.d/hind.conf
   supervisord
 }

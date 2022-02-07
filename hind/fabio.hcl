@@ -9,7 +9,7 @@ job "fabio" {
       config {
         image        = "fabiolb/fabio"
         network_mode = "host"
-        # volumes      = [ "/etc/fabio/:/etc/fabio/" ]
+        volumes      = [ "/etc/fabio/ssl/:/etc/fabio/ssl/" ]
 
         args = [
           "-proxy.cs",
