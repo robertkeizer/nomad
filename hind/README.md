@@ -12,6 +12,26 @@ Nomad jobs will run as `docker` containers on the VM itself, orchestrated by `no
   - 80   - http  (load balancer will auto-upgrade/redir to https)
   - 4646 - access to `nomad`
 
+## https
+The ideal experience is that you point a dns wildcard at the IP address of the VM running your `hind` system.
+
+This allows automatically-created hostnames from git group/organization + repository name + branch name to "just work".
+
+For example, `*.example.com` DNS wildcard will allow https://myteam-my-repo-name-my-branch.example.com to "just work".
+
+(Presently) you then need (ideally a _https_ wildcard cert (2 files)) that can be added (dynamically) to `fabio`.  `fabio` will then do http => https automatic 301 redirects and https validation and termination (downgrading traffic to talk to your deployments over simply http).
+
+Simply copy in your https wildcard cert file pair into this folder on your VM: `/etc/fabio/ssl/`,
+named like:
+```
+example.com-cert.pem
+example.com-key.pem
+```
+
+We are working on integrating [caddy](https://caddyserver.com) (which incorporates `zerossl` and Let's Encrypt to on-demand create single host https certs as traffic arrives at your box.
+
+(Then you won't have to deal with renewing https wildcard cert(s) yourself, periodically. ;-)
+
 
 ## Setup and run
 We'll use this as our `Dockerfile`: [../Dockerfile.hind](../Dockerfile.hind)
@@ -50,7 +70,7 @@ You can also open the `NOMAD_ADDR` (above) in a browser and enter in your `NOMAD
 
 ```bash
 nom-tunnel () {
-	[ "$NOMAD_ADDR" = "" ] && echo "Please set NOMAD_ADDR environment variable first" && return
+  [ "$NOMAD_ADDR" = "" ] && echo "Please set NOMAD_ADDR environment variable first" && return
   local HOST=$(echo "$NOMAD_ADDR" | sed 's/:4646\/*$//' |sed 's/^https*:\/\///')
   ssh -fNA -L 8500:$HOST:8500 -L 9998:$HOST:9998 $HOST
 }
