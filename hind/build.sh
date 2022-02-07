@@ -11,8 +11,6 @@
 #   Installs load balancer "fabio".
 
 function main() {
-  /app/install-docker-ce.sh
-
   config
 
   # start up uncustomized versions of nomad and consul
@@ -55,6 +53,7 @@ function customize() {
 function finish() {
   sleep 30
 
+  mkdir -p -m755 /etc/fabio/ssl
   nomad run /app/hind/fabio.hcl
 }
 

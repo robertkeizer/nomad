@@ -1,8 +1,8 @@
 FROM ubuntu:focal
 
-# docker build --network=host -t hind -f Dockerfile.hind  .
+# docker build --network=host -v /var/run/docker.sock:/var/run/docker.sock -t hind -f Dockerfile.hind  .
 
-# docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock --rm -it hind zsh
+# docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /etc/fabio/ssl:/etc/fabio/ssl --rm -it hind zsh -c 'supervisord; source /root/.config/nomad; source /app/aliases; zsh'
 
 # docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock hind
 
