@@ -22,6 +22,8 @@ RUN apt-get -yqq update  && \
 WORKDIR /app
 COPY . .
 
-RUN /app/install-docker-ce.sh  &&  /app/hind xxxx
+# xxxx combine these
+RUN /app/install-docker-ce.sh
+RUN /app/hind/build.sh
 
 CMD /bin/zsh # xxxx supervisord
