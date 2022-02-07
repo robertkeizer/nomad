@@ -43,18 +43,33 @@ cd nomad
 # build locally
 docker build --network=host -t hind -f Dockerfile.hind  .
 
-# copy wildcard cert files for your domain on the VM you want to run this on to: /etc/fabio/ssl/
-# name the pair of files like:
-#    example.com-cert.pem
-#    example.com-key.pem
-#
-# suggest perms: xxxx
-# -r--r--r-- 1 root   root  example.com-cert.pem
-# -r--r--r-- 1 root   root  example.com-key.pem
-
 # fire off the container in the background
-docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock --name hind -d hind
+docker run --net=host --privileged -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name hind -d hind
 ```
+
+Copy wildcard cert files for your domain on the VM you want to run this on to: `/etc/fabio/ssl/`
+
+Name the pair of files like:
+- `example.com-cert.pem`
+- `example.com-key.pem`
+
+suggest perms: xxxx
+```bash
+-r--r--r-- 1 root   root  example.com-cert.pem
+-r--r--r-- 1 root   root  example.com-key.pem
+```
+
+
+## Setting up jobs
+We suggest you use the same approach mentioned in [../README.md](../README.md) which will ultimately use a templated [../project.nomad](../project.nomad) file.  However, since we are running `nomad` and `consul` inside a docker container, you will need to add the following to your project's `.gitlab-ci.yml` files:
+```yaml
+variables:
+  NOMAD_VAR_NETWORK_MODE: 'host'
+  NOMAD_VAR_PORTS: '{ -1 = "http" }'
+```
+This will make your container's main http port be dynamic (and not fixed to something like 80 or 5000) so that multiple deployments can all run using different ports.
+
+Simply setup your `Dockerfile` to read the environment variable `$NOMAD_PORT_http` and have your webserver/daemon listen on that port.  `$NOMAD_PORT_http` gets set by `nomad` when your container starts up, to the random port it picked for your daemon to listen on.
 
 ## Nomad credentils
 Get your nomad access credentials (`NOMAD_ADDR` and `NOMAD_TOKEN`) from a shell on the VM, so you can run `nomad status` anywhere you have downloaded `nomad` binary (include home mac/laptop etc.)
