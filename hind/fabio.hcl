@@ -15,7 +15,6 @@ job "fabio" {
           "-proxy.cs",
           "cs=my-certs;type=path;cert=/etc/fabio/ssl",
           "-proxy.addr",
-          # "127.0.0.1:443;cs=my-certs;type=path;cert=/etc/fabio/ssl,127.0.0.1:80",
           "0.0.0.0:443;cs=my-certs;type=path;cert=/etc/fabio/ssl,0.0.0.0:80",
           "-proxy.header.sts.maxage",
           "15724800",
@@ -26,9 +25,6 @@ job "fabio" {
       }
 
       resources {
-        // "testing showed that while memory limits are enforced as one would expect,
-        // "CPU limits are soft limits and not enforced as long as there is available CPU on the host machine."
-        //   - https://blog.cloudflare.com/how-we-use-hashicorp-nomad/
         cpu    = 200
         memory = 128
       }

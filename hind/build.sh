@@ -11,8 +11,12 @@
 #   Installs load balancer "fabio".
 
 function main() {
-  # install & setup stock nomad & consul
-  baseline
+  /app/install-docker-ce.sh
+
+  config
+
+  # start up uncustomized versions of nomad and consul
+  setup-daemons
 
   # customize nomad & consul
   customize
@@ -22,40 +26,16 @@ function main() {
 
 
 function config() {
-  FIRST=$(hostname -f)
+  local HOSTY=$(hostname -f)
 
-  export  NOMAD_ADDR="http://${FIRST?}:4646" # xxxx we'll use https everywhere once caddy is up...
+  export  NOMAD_ADDR="http://${HOSTY?}:4646" # xxxx we'll use https everywhere once caddy is up...
   export CONSUL_ADDR="http://localhost:8500"
   export  FABIO_ADDR="http://localhost:9998"
-  export FIRSTIP=$(host ${FIRST?} | perl -ane 'print $F[3] if $F[2] eq "address"')
   export SCTL=supervisorctl
 
   # find daemon config files
    NOMAD_HCL=$(dpkg -L nomad  2>/dev/null |egrep ^/etc/ |egrep -m1 '\.hcl$' || echo -n '')
   CONSUL_HCL=$(dpkg -L consul 2>/dev/null |egrep ^/etc/ |egrep -m1 '\.hcl$' || echo -n '')
-}
-
-
-function baseline() {
-  cd /tmp
-
-  apt-get -yqq --no-install-recommends install  sudo  rsync  dnsutils  supervisor
-
-  /app/install-docker-ce.sh
-
-  # install binaries and service files
-  #   eg: /usr/bin/nomad  /etc/nomad.d/nomad.hcl  /usr/lib/systemd/system/nomad.service
-
-  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
-  apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-  apt-get -yqq update
-
-  apt-get -yqq install  nomad  consul
-
-  config
-
-  # start up uncustomized versions of nomad and consul
-  setup-daemons
 }
 
 
@@ -79,7 +59,7 @@ function customize() {
 function finish() {
   sleep 30
 
-  nomad run /app/etc/hind/fabio.hcl
+  nomad run /app/hind/fabio.hcl
 
   echo "
 
@@ -193,11 +173,10 @@ function nomad-env-vars() {
   mkdir -p $HOME/.config
   CONF=$HOME/.config/nomad
 
-  local NOMACL=$HOME/.config/nomad.$(echo ${FIRST?} |cut -f1 -d.)
+  local NOMACL=$HOME/.config/bootstrap.txt
   mkdir -p $(dirname $NOMACL)
   chmod 600 $NOMACL $CONF 2>/dev/null |cat
   nomad acl bootstrap |tee $NOMACL
-  # NOTE: can run `nomad acl token self` post-facto if needed...
   echo "
 export NOMAD_ADDR=$NOMAD_ADDR
 export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $CONF
