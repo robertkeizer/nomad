@@ -23,6 +23,13 @@ RUN /app/install-docker-ce.sh
 
 COPY . .
 
-RUN /app/hind/build.sh
+COPY supervisord.conf /etc/supervisor/conf.d/
+COPY Caddyfile.ctmpl /etc/
+
+RUN cat nomad.hcl  >> /etc/nomad.d/nomad.hcl  && \
+    cat consul.hcl >> /etc/consul.d/consul.hcl  && \
+    # for persistent volumes
+    mkdir -m777 -p /pv  && \
+    /app/hind/build.sh
 
 CMD [ "/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf" ]
