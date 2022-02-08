@@ -8,7 +8,7 @@
 # Current Overview:
 #   Installs nomad server and client.
 #   Installs consul server and client.
-#   Installs load balancer "fabio".
+#   Installs caddyserver load balancer.
 
 function main() {
   config
@@ -146,7 +146,21 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 
 function setup-daemons() {
   # get services ready to go
-  mkdir -p -m755 /etc/fabio/ssl
+
+  # start of with something / anything
+  echo 'example.com { reverse_proxy 207.241.234.143:30926 \n}' >| /etc/Caddyfile
+
+  echo '
+{{ range services -}}
+{{ if  .Tags | join "," | regexMatch "urlprefix.*" }}
+{{- range service .Name }}
+{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll ":.*" "" }} { reverse_proxy {{ .Address }}:{{.Port}}
+}
+{{- end }}
+{{- end }}
+{{ end -}}
+' > /etc/hostnames2ports.ctmpl
+
 
   echo "
 [program:nomad]
@@ -159,10 +173,17 @@ command=/usr/bin/consul agent -config-dir=/etc/consul.d/
 autorestart=true
 startsecs=10
 
-[program:fabio]
-command=/bin/bash -c 'sleep 20; source /root/.config/nomad; nomad stop -purge fabio; sleep 10; nomad run /app/hind/fabio.hcl'
-autorestart=false
-" >| /etc/supervisor/conf.d/hind.conf
+[program:caddy]
+command=/usr/bin/caddy run
+autorestart=true
+startsecs=10
+
+[program:consul-template]
+command=/usr/bin/consul-template -template \"/etc/hostnames2ports.ctmpl:/etc/Caddyfile:/bin/bash -c '/usr/local/bin/caddy reload || true'\"
+autorestart=true
+startsecs=10
+" > /etc/supervisor/conf.d/hind.conf
+
   supervisord
 }
 

@@ -16,7 +16,7 @@ variables {
 
   # Switch this, locally edit your /etc/hosts, or otherwise.  as is, webapp will appear at:
   #   https://internetarchive-bai-master.x.archive.org/
-  BASE_DOMAIN = "us.archive.org"
+  BASE_DOMAIN = "code.archive.org"
 }
 
 # NOTE: "hello-world" should really be "${var.CI_PROJECT_PATH_SLUG}-${var.CI_COMMIT_REF_SLUG}"
