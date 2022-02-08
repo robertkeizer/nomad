@@ -181,7 +181,7 @@ startsecs=10
 
 [program:consul-template]
 directory=/etc
-command=/usr/bin/consul-template -template \"/etc/hostnames2ports.ctmpl:/etc/Caddyfile:/bin/bash -c 'cd /etc; /usr/local/bin/caddy reload || true'\"
+command=/usr/bin/consul-template -template \"/etc/hostnames2ports.ctmpl:/etc/Caddyfile:/bin/bash -c 'cd /etc; /usr/bin/caddy reload || true'\"
 autorestart=true
 startsecs=10
 " > /etc/supervisor/conf.d/hind.conf
