@@ -12,7 +12,10 @@ RUN apt-get -yqq update  && \
     curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -  && \
     apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
     apt-get -yqq update  && \
-    apt-get -yqq install  nomad  consul
+    apt-get -yqq install  nomad  consul  consul-template  && \
+    wget -qO /usr/bin/caddy 'https://caddyserver.com/api/download?os=linux&arch=amd64'  && \
+    chmod +x /usr/bin/caddy
+
 
 WORKDIR /app
 COPY     install-docker-ce.sh .
