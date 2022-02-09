@@ -49,9 +49,15 @@ This will make your container's main http port be dynamic (and not fixed to some
 Simply setup your project's `Dockerfile` to read the environment variable `$NOMAD_PORT_http` and have your webserver/daemon listen on that port.  `$NOMAD_PORT_http` gets set by `nomad` when your container starts up, to the random port it picked for your daemon to listen on.
 
 ## Nomad credentils
-Get your nomad access credentials (`NOMAD_ADDR` and `NOMAD_TOKEN`) from a shell on the VM, so you can run `nomad status` anywhere you have downloaded `nomad` binary (include home mac/laptop etc.)
+Get your nomad access credentials so you can run `nomad status` anywhere
+that you have downloaded `nomad` binary (include home mac/laptop etc.)
+
+From a shell on your VM:
+- `export NOMAD_ADDR=https://$(hostname -f)`
+- for `NOMAD_TOKEN`:
+
 ```bash
-docker exec -it hind zsh -c 'cat /root/.config/nomad' | perl -pe s/localhost/$(hostname -f)/
+docker exec hind  grep NOMAD_TOKEN /root/.config/nomad
 ```
 
 You can also open the `NOMAD_ADDR` (above) in a browser and enter in your `NOMAD_TOKEN`

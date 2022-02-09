@@ -9,12 +9,8 @@
 function main() {
   # starts up nomad, consul, etc.
   supervisord
-
-  # update to our customized config
-  supervisorctl restart nomad
-  supervisorctl restart consul
-
   sleep 15
+
   nomad-env-vars
 
   set +x
