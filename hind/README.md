@@ -82,5 +82,6 @@ nom-tunnel () {
 ## Inspiration
 Docker-in-Docker (dind) and `kind`:
 - https://kind.sigs.k8s.io/
+
 for `caddyserver` + `consul-connect`:
 - https://blog.tjll.net/too-simple-to-fail-nomad-caddy-wireguard/
