@@ -36,7 +36,7 @@ RUN cat hind/nomad.hcl  >> /etc/nomad.d/nomad.hcl  && \
     echo "export NOMAD_ADDR=http://localhost:4646" > $HOME/.nomad  && \
     echo export NOMAD_TOKEN=$(nomad acl bootstrap |fgrep 'Secret ID' |cut -f2- -d= |tr -d ' ') >> $HOME/.nomad  && \
     chmod 400 $HOME/.nomad  && \
-    source    $HOME/.nomad  && \
+    . $HOME/.nomad  && \
     # verify nomad & consul accessible & working
     consul members  && \
     nomad server members  && \
