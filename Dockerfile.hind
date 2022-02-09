@@ -18,8 +18,8 @@ RUN apt-get -yqq update  && \
 
 
 WORKDIR /app
-COPY install-docker-ce.sh .
-RUN  install-docker-ce.sh
+COPY   install-docker-ce.sh .
+RUN  ./install-docker-ce.sh
 
 COPY . .
 
