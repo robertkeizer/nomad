@@ -10,16 +10,15 @@ Nomad jobs will run as `docker` containers on the VM itself, orchestrated by `no
 - if using a firewall (like `ferm`, etc.) make sure the following ports are open from the VM to the world:
   - 443  - https
   - 80   - http  (load balancer will auto-upgrade/redir to https)
-  - 4646 - access to `nomad`
 
 ## https
 The ideal experience is that you point a dns wildcard at the IP address of the VM running your `hind` system.
 
-This allows automatically-created hostnames from git group/organization + repository name + branch name to "just work".
+This allows automatically-created hostnames from CI/CD pipelines [deploy] stage to use the git group/organization + repository name + branch name to create a nice semantic DNS hostname for your webapps to run as, and everything will "just work".
 
 For example, `*.example.com` DNS wildcard will allow https://myteam-my-repo-name-my-branch.example.com to "just work".
 
-We use [caddy](https://caddyserver.com) (which incorporates `zerossl` and Let's Encrypt to on-demand create single host https certs as traffic arrives at your box.
+We use [caddy](https://caddyserver.com) (which incorporates `zerossl` and Let's Encrypt) to on-demand create single host https certs as service discovery from `consul` announces new hostnames.
 
 
 ## Setup and run
@@ -57,7 +56,7 @@ From a shell on your VM:
 - for `NOMAD_TOKEN`:
 
 ```bash
-docker exec hind  grep NOMAD_TOKEN /root/.config/nomad
+docker run --rm  hind  grep NOMAD_TOKEN /root/.nomad
 ```
 
 You can also open the `NOMAD_ADDR` (above) in a browser and enter in your `NOMAD_TOKEN`
