@@ -4,7 +4,7 @@ Installs `nomad`, `consul`, and `caddyserver` (router) together as a mini cluste
 
 Nomad jobs will run as `docker` containers on the VM itself, orchestrated by `nomad`, leveraging `docker.sock`.
 
-The _brilliant_ `consul-template` will be used as "glue" between `consul` and `caddyserver` -- turning `caddyserver` into an always up-to-date reverse proxy router from SNI to running containers :)
+The _brilliant_ `consul-template` will be used as "glue" between `consul` and `caddyserver` -- turning `caddyserver` into an always up-to-date reverse proxy router from incoming requests' Server Name Indication (SNI) to running containers :)
 
 ## Minimal requirements:
 - VM you can `ssh` into
