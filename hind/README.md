@@ -54,12 +54,12 @@ Get your nomad access credentials so you can run `nomad status` anywhere
 that you have downloaded `nomad` binary (include home mac/laptop etc.)
 
 From a shell on your VM:
-- `export NOMAD_ADDR=https://$(hostname -f)`
-- for `NOMAD_TOKEN`:
-
 ```bash
-docker run --rm  hind  grep NOMAD_TOKEN /root/.nomad
+export NOMAD_ADDR=https://$(hostname -f)
+eval $(docker run --rm  hind  grep NOMAD_TOKEN /root/.nomad)
 ```
+Then, `nomad status` should work.
+([Download `nomad` binary](https://www.nomadproject.io/downloads) to VM or home dir if/as needed).
 
 You can also open the `NOMAD_ADDR` (above) in a browser and enter in your `NOMAD_TOKEN`
 
