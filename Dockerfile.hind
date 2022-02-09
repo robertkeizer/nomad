@@ -30,6 +30,16 @@ RUN cat hind/nomad.hcl  >> /etc/nomad.d/nomad.hcl  && \
     cat hind/consul.hcl >> /etc/consul.d/consul.hcl  && \
     # for persistent volumes
     mkdir -m777 /pv  && \
-    hind/build.sh
+    # start up nomad, consul, etc.
+    supervisord  &&  sleep 15  && \
+    # setup nomad credentials
+    echo "export NOMAD_ADDR=http://localhost:4646" > $HOME/.nomad  && \
+    echo export NOMAD_TOKEN=$(nomad acl bootstrap |fgrep 'Secret ID' |cut -f2- -d= |tr -d ' ') >> $HOME/.nomad  && \
+    chmod 400 $HOME/.nomad  && \
+    source    $HOME/.nomad  && \
+    # verify nomad & consul accessible & working
+    consul members  && \
+    nomad server members  && \
+    nomad node status
 
 CMD [ "/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf" ]
