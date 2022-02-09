@@ -68,8 +68,8 @@ You can also open the `NOMAD_ADDR` (above) in a browser and enter in your `NOMAD
 ```bash
 nom-tunnel () {
   [ "$NOMAD_ADDR" = "" ] && echo "Please set NOMAD_ADDR environment variable first" && return
-  local HOST=$(echo "$NOMAD_ADDR" | sed 's/:4646\/*$//' |sed 's/^https*:\/\///')
-  ssh -fNA -L 8500:$HOST:8500 $HOST
+  local HOST=$(echo "$NOMAD_ADDR" |sed 's/^https*:\/\///')
+  ssh -fNA -L 8500:localhost:8500 $HOST
 }
 ```
 
