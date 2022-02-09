@@ -4,9 +4,11 @@ Installs `nomad`, `consul`, and `caddyserver` (router) together as a mini cluste
 
 Nomad jobs will run as `docker` containers on the VM itself, orchestrated by `nomad`, leveraging `docker.sock`.
 
+The _brilliant_ `consul-template` will be used as "glue" between `consul` and `caddyserver` -- turning `caddyserver` into an always up-to-date reverse proxy router from SNI to running containers :)
+
 ## Minimal requirements:
+- VM you can `ssh` into
 - VM with `docker` daemon
-- VM you can `ssh` and `sudo`
 - if using a firewall (like `ferm`, etc.) make sure the following ports are open from the VM to the world:
   - 443  - https
   - 80   - http  (load balancer will auto-upgrade/redir to https)
@@ -14,9 +16,9 @@ Nomad jobs will run as `docker` containers on the VM itself, orchestrated by `no
 ## https
 The ideal experience is that you point a dns wildcard at the IP address of the VM running your `hind` system.
 
-This allows automatically-created hostnames from CI/CD pipelines [deploy] stage to use the git group/organization + repository name + branch name to create a nice semantic DNS hostname for your webapps to run as, and everything will "just work".
+This allows automatically-created hostnames from CI/CD pipelines [deploy] stage to use the [git group/organization + repository name + branch name] to create a nice semantic DNS hostname for your webapps to run as and load from - and everything will "just work".
 
-For example, `*.example.com` DNS wildcard will allow https://myteam-my-repo-name-my-branch.example.com to "just work".
+For example, `*.example.com` DNS wildcard pointing to the VM where `hind` is running, will allow https://myteam-my-repo-name-my-branch.example.com to "just work".
 
 We use [caddy](https://caddyserver.com) (which incorporates `zerossl` and Let's Encrypt) to on-demand create single host https certs as service discovery from `consul` announces new hostnames.
 
@@ -78,4 +80,7 @@ nom-tunnel () {
 
 
 ## Inspiration
+Docker-in-Docker (dind) and `kind`:
+- https://kind.sigs.k8s.io/
+for `caddyserver` + `consul-connect`:
 - https://blog.tjll.net/too-simple-to-fail-nomad-caddy-wireguard/
