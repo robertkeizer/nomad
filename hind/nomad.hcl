@@ -1,7 +1,3 @@
-server {
-}
-
-# some may could be redundant -- check defaults in nomad v1+
 addresses {
   http = "0.0.0.0"
 }

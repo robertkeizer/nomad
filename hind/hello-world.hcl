@@ -15,7 +15,7 @@ variables {
   CI_REGISTRY_PASSWORD = ""                                 # .. allows pull from private registry
 
   # Switch this, locally edit your /etc/hosts, or otherwise.  as is, webapp will appear at:
-  #   https://internetarchive-bai-master.x.archive.org/
+  #   https://internetarchive-bai-dynamic-port.code.archive.org/
   BASE_DOMAIN = "code.archive.org"
 }
 
