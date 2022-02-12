@@ -29,6 +29,7 @@ include:
 deploy:
   stage: deploy
   script:
+    # https://gitlab.com/internetarchive/nomad/-/blob/master/deploy.sh
     - /deploy.sh
   environment:
     name: $CI_COMMIT_REF_SLUG
