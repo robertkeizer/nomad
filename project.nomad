@@ -50,9 +50,6 @@ variables {
 
   NETWORK_MODE = "bridge"
 
-  # used in conjunction with PG and PV_DB variables (below)
-  POSTGRESQL_PASSWORD = ""
-
   # only used for github repos
   CI_GITHUB_IMAGE = ""
 
@@ -67,12 +64,8 @@ variables {
 # Persistent Volume(s).  To enable, coordinate a free slot with your nomad cluster administrator
 # and then set like, for PV slot 3 like:
 #   NOMAD_VAR_PV='{ pv3 = "/pv" }'
-#   NOMAD_VAR_PV_DB='{ pv9 = "/bitnami/wordpress" }'
+#   NOMAD_VAR_PV='{ pv9 = "/bitnami/wordpress" }'
 variable "PV" {
-  type = map(string)
-  default = {}
-}
-variable "PV_DB" {
   type = map(string)
   default = {}
 }
@@ -154,11 +147,11 @@ locals {
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, var.PG, {})
 
-  # NOTE: 3rd arg is hcl2 quirk needed in case first two args are empty maps as well
-  pvs = merge(var.PV, var.PV_DB, {})
+  # NOTE: 2rd arg is hcl2 quirk needed in case first two args are empty maps as well
+  pvs = merge(var.PV, {})
 
   # Make it so that later we can constrain deploy to server kind of _either_ pv or !pv kind server.
-  # If either PV or PV_DB is in use, constrain deployment to the single "pv" node in the cluster.
+  # If PV is in use, constrain deployment to the single "pv" node in the cluster.
   kinds = concat([for k in keys(local.pvs): "pv"])
   # So if local.kinds is empty list (the default), set this to ["not pv"]; else set to []
   kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
@@ -444,71 +437,6 @@ job "NOMAD_VAR_SLUG" {
           source    = "${volume.key}"
         }
       }
-
-
-
-      # Optional add-on postgres DB.  @see README.md for more details to enable.
-      dynamic "task" {
-        # task.key == DB port number
-        # task.value == DB name like 'db'
-        for_each = var.PG
-        labels = ["${var.SLUG}-db"]
-        content {
-          driver = "docker"
-
-          config {
-            image = "docker.io/bitnami/postgresql:11.7.0-debian-10-r9"
-          }
-
-          # https://www.nomadproject.io/docs/job-specification/template#environment-variables
-          template {
-            data = <<EOH
-POSTGRESQL_PASSWORD="${var.POSTGRESQL_PASSWORD}"
-EOH
-            destination = "secrets/file.env"
-            env         = true
-          }
-
-          service {
-            name = "${var.SLUG}-db"
-            port = "${task.value}"
-
-            check {
-              expose   = true
-              type     = "tcp"
-              interval = "2s"
-              timeout  = "2s"
-            }
-
-            check {
-              # This posts container's bridge IP address (starting with "172.") into
-              # an expected file that other docker container can reach this
-              # DB docker container with.
-              type     = "script"
-              name     = "setup"
-              command  = "/bin/sh"
-              args     = ["-c", "hostname -i |tee /alloc/data/${var.CI_PROJECT_PATH_SLUG}-db.ip"]
-              interval = "1h"
-              timeout  = "10s"
-            }
-
-            check {
-              type     = "script"
-              name     = "db-ready"
-              command  = "/opt/bitnami/postgresql/bin/pg_isready"
-              args     = ["-Upostgres", "-h", "127.0.0.1", "-p", "${task.key}"]
-              interval = "10s"
-              timeout  = "10s"
-            }
-          } # end service
-
-          volume_mount {
-            volume      = "${element(keys(var.PV_DB), 0)}"
-            destination = "${element(values(var.PV_DB), 0)}"
-            read_only   = false
-          }
-        } # end content
-      } # end dynamic "task"
     }
   } # end dynamic "group"
 
