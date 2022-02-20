@@ -438,8 +438,9 @@ job "NOMAD_VAR_SLUG" {
           source    = "${volume.key}"
         }
       }
+
+      # GROUP.NOMAD--INSERTS-HERE
     }
-    # GROUP.NOMAD--INSERTS-HERE
   } # end dynamic "group"
 
 
