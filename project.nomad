@@ -146,11 +146,15 @@ locals {
   ports_extra_tmp  = {for k, v in var.PORTS:                 k  => v  if v != "http"}
   ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > -2}
   ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < -1}
+  # docker container configures all ports *unless* SERVICE_SUFFIXES is true, then just main port
+  ports_docker = merge(
+    {for k, v in var.PORTS        : k => v if !var.SERVICE_SUFFIXES},
+    {for k, v in local.ports_main : k => v if  var.SERVICE_SUFFIXES})
 
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, var.PG, {})
 
-  # NOTE: 2rd arg is hcl2 quirk needed in case first two args are empty maps as well
+  # NOTE: 2rd arg is hcl2 quirk needed in case first arg is empty map as well
   pvs = merge(var.PV, {})
 
   # Make it so that later we can constrain deploy to server kind of _either_ pv or !pv kind server.
@@ -316,7 +320,7 @@ job "NOMAD_VAR_SLUG" {
               image = "${local.docker_image}"
               image_pull_timeout = "20m"
               network_mode = "${var.NETWORK_MODE}"
-              ports = [for portnumber, portname in var.PORTS : portname]
+              ports = local.ports_docker
               mounts = var.BIND_MOUNTS
               # The MEMORY var now becomes a **soft limit**
               # We will 10x that for a **hard limit**
@@ -331,7 +335,7 @@ job "NOMAD_VAR_SLUG" {
               image = "${local.docker_image}"
               image_pull_timeout = "20m"
               network_mode = "${var.NETWORK_MODE}"
-              ports = [for portnumber, portname in var.PORTS : portname]
+              ports = local.ports_docker
               mounts = var.BIND_MOUNTS
               # The MEMORY var now becomes a **soft limit**
               # We will 10x that for a **hard limit**
