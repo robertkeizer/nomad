@@ -276,6 +276,9 @@ job "NOMAD_VAR_SLUG" {
             interval = "10s"
             timeout  = "2s"
           }
+          check_restart {
+            grace = "${var.HEALTH_TIMEOUT}"
+          }
         }
       }
       dynamic "service" {
