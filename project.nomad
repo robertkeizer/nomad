@@ -227,6 +227,7 @@ job "NOMAD_VAR_SLUG" {
       #     https://www.nomadproject.io/docs/job-specification/service.html
       #
       service {
+        task = "${var.SLUG}"
         name = "${var.SLUG}"
         # second line automatically redirects any http traffic to https
         tags = concat([for HOST in var.HOSTNAMES :
