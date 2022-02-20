@@ -57,6 +57,9 @@ variables {
 
   FORCE_PULL = false
 
+  # For jobs with 2+ containers (and tasks), make additional ports link to the additional tasks
+  SERVICE_SUFFIXES = false
+
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
 }
@@ -261,6 +264,7 @@ job "NOMAD_VAR_SLUG" {
         content {
           # service.key == portnumber
           # service.value == portname
+          task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.SERVICE_SUFFIXES]))
           name = "${var.SLUG}-${service.value}"
           tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
           port = "${service.value}"
