@@ -438,6 +438,7 @@ job "NOMAD_VAR_SLUG" {
         }
       }
     }
+    # GROUP.NOMAD--INSERTS-HERE
   } # end dynamic "group"
 
 
