@@ -52,6 +52,13 @@ proto tcp dport 8889 ACCEPT;
 proto tcp dport 8200 ACCEPT;
 
 
+# ===== TEMPORARILY OPEN ==================================================================
+# for webapps and such on higher ports
+# these were open to world when supposed to be $CLUSTER only *and yet* blocked from nomad
+# containers (!) so open for now...
+proto tcp dport 20000:45000 ACCEPT;
+
+
 # ===== CLUSTER OPEN ======================================================================
 # for nomad join
 saddr $CLUSTER proto tcp dport 4647 ACCEPT;
@@ -79,9 +86,6 @@ saddr $CLUSTER proto tcp dport 9998 ACCEPT;
 
 # locator UDP port for archive website
 saddr $CLUSTER proto udp sport 8010 ACCEPT;
-
-# for webapps and such on higher ports
-saddr $CLUSTER proto tcp dport 20000:45000 ACCEPT;
 ' |sudo tee $FI
 
 set -x

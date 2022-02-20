@@ -57,8 +57,8 @@ variables {
 
   FORCE_PULL = false
 
-  # For jobs with 2+ containers (and tasks), make additional ports link to the additional tasks
-  SERVICE_SUFFIXES = false
+  # For jobs with 2+ containers (and tasks) (so we can setup ports properly)
+  MULTI_CONTAINER = false
 
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
@@ -146,10 +146,10 @@ locals {
   ports_extra_tmp  = {for k, v in var.PORTS:                 k  => v  if v != "http"}
   ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > -2}
   ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < -1}
-  # docker container configures all ports *unless* SERVICE_SUFFIXES is true, then just main port
+  # 1st docker container configures all ports *unless* MULTI_CONTAINER is true, then just main port
   ports_docker = values(merge(
-    {for k, v in var.PORTS        : k => v if !var.SERVICE_SUFFIXES},
-    {for k, v in local.ports_main : k => v if  var.SERVICE_SUFFIXES}))
+    {for k, v in var.PORTS        : k => v if !var.MULTI_CONTAINER},
+    {for k, v in local.ports_main : k => v if  var.MULTI_CONTAINER}))
 
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, var.PG, {})
@@ -268,8 +268,8 @@ job "NOMAD_VAR_SLUG" {
         content {
           # service.key == portnumber
           # service.value == portname
-          task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.SERVICE_SUFFIXES]))
           name = "${var.SLUG}-${service.value}"
+          task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.MULTI_CONTAINER]))
           tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
           port = "${service.value}"
           check {
