@@ -51,7 +51,6 @@ function main() {
 
   setup-dnsmasq
   setup-certs
-  setup-misc
 
   # start up uncustomized version of consul & nomad
   setup-daemons
@@ -76,8 +75,6 @@ function config() {
   export  NOMAD_ADDR="https://${FIRST?}:4646"
   export CONSUL_ADDR="http://localhost:8500"
   export  FABIO_ADDR="http://localhost:9998"
-  export PV_MAX=20
-  export PV_DIR=/opt/nomad/pv
 
   export FIRSTIP=$(ifconfig |egrep -o 'inet [0-9\.]+' |cut -f2 -d' ' |fgrep -v 127.0.0 |head -1)
 
@@ -172,8 +169,7 @@ function setup-nomad() {
   sudo cp -p  $NOMAD_HCL  $NOMAD_HCL.orig
 
   # We'll put a loadbalancer on all cluster nodes
-  # All jobs requiring a PV get put on first cluster node
-  local KIND='lb,pv'
+  local KIND='lb'
 
   local TOK_N=$(nomad operator keygen |tr -d ^ |cat)
 
@@ -228,19 +224,6 @@ client {
   }
 }' | sudo tee -a $NOMAD_HCL
 
-  # pass through disk from host for now.  peg project(s) with PV requirements to this host.
-  ( echo '
-client {'
-  for N in $(seq 1 ${PV_MAX?}); do
-    echo -n '
-  host_volume "pv'$N'" {
-    path      = "'$PV_DIR'/'$N'"
-    read_only = false
-  }'
-  done
-    echo '
-}' ) | sudo tee -a $NOMAD_HCL
-
   set -x
 
 
@@ -275,18 +258,6 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
   chmod 400 $NOMACL $CONF
 
   source $CONF
-}
-
-
-
-function setup-misc() {
-  # One server in cluster gets marked for hosting repos with Persistent Volume requirements.
-  # Keeping things simple, and to avoid complex multi-host solutions like rook/ceph, we'll
-  # pass through these `/pv/` dirs from the VM/host to containers.  Each container using it
-  # needs to use a unique subdir...
-  for N in $(seq 1 ${PV_MAX?}); do
-    sudo mkdir -m777 -p ${PV_DIR?}/$N
-  done
 }
 
 

@@ -60,16 +60,15 @@ variables {
   # For jobs with 2+ containers (and tasks) (so we can setup ports properly)
   MULTI_CONTAINER = false
 
+  # Persistent Volume - set to a (fully qualified) dest dir inside your container, if you need a PV.
+  # We suggest "/pv".
   PERSISTENT_VOLUME = ""
 
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
 }
 
-# Persistent Volume(s).  To enable, coordinate a free slot with your nomad cluster administrator
-# and then set like, for PV slot 3 like:
-#   NOMAD_VAR_PV='{ pv3 = "/pv" }'
-#   NOMAD_VAR_PV='{ pv9 = "/bitnami/wordpress" }'
+# DEPRECATED
 variable "PV" {
   type = map(string)
   default = {}
@@ -126,7 +125,7 @@ variable "NOMAD_SECRETS" {
 
 
 variable "NOT_PV" {
-  # this is temporary until NFS server is setup for persistent volumes
+  # DEPRECATED
   type = list(string)
   default = ["not pv"]
 }
@@ -150,13 +149,9 @@ locals {
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, {})
 
-  # NOTE: 2rd arg is hcl2 quirk needed in case first arg is empty map as well
+  # DEPRECATED
   pvs = merge(var.PV, {})
-
-  # Make it so that later we can constrain deploy to server kind of _either_ pv or !pv kind server.
-  # If PV is in use, constrain deployment to the single "pv" node in the cluster.
   kinds = concat([for k in keys(local.pvs): "pv"])
-  # So if local.kinds is empty list (the default), set this to ["not pv"]; else set to []
   kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
 
   # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
@@ -374,9 +369,8 @@ job "NOMAD_VAR_SLUG" {
             }
           }
 
+          # DEPRECATED
           dynamic "volume_mount" {
-            # volume_mount.key == slot, eg: "/pv3"
-            # volume_mount.value == dest dir, eg: "/pv" or "/bitnami/wordpress"
             for_each = local.pvs
             content {
               volume      = "${volume_mount.key}"
@@ -438,9 +432,8 @@ job "NOMAD_VAR_SLUG" {
         }
       }
 
+      # DEPRECATED
       dynamic "volume" {
-        # volume.key == slot, eg: "/pv3"
-        # volume.value == dest dir, eg: "/pv" or "/bitnami/wordpress"
         labels = [ volume.key ]
         for_each = local.pvs
         content {

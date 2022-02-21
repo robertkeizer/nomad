@@ -39,12 +39,8 @@ rm -fv /etc/ferm/*/nomad.conf /etc/dnsmasq.d/nomad
 
 service ferm reload
 
-
-rmdir /pv/[0-9]*
-rmdir /pv
-
 [ -e /pv ]  &&  echo "
 
 NOTE: NOT removing remaining non-empty Persistent Volume dirs:
 
-"  &&  ls /pv/[0-9]*
+"  &&  ls /pv/

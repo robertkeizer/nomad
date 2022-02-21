@@ -10,7 +10,6 @@
 #   Installs load balancer "fabio" on all nodes
 #      (in case you want to use multiple IP addresses for deployments in case one LB/node is out)
 #   Optionally installs gitlab runner on 1st node
-#   Sets up Persistent Volume subdirs on 1st node - deployments needing PV only schedule to this node
 
 MYDIR=${0:a:h}
 
@@ -76,11 +75,8 @@ function config() {
   export  NOMAD_ADDR="https://${FIRST?}:4646"
   export CONSUL_ADDR="http://localhost:8500"
   export  FABIO_ADDR="http://localhost:9998"
-  export PV_MAX=20
-  export PV_DIR=/pv
 
   export FIRSTIP=$(ifconfig |egrep -o 'inet [0-9\.]+' |cut -f2 -d' ' |fgrep -v 127.0.0 |head -1)
-  export PV_DIR=/opt/nomad/pv
 
   NOMAD_HCL=/etc/nomad.d/nomad.hcl
   CONSUL_HCL=/etc/consul.d/consul.hcl
@@ -133,14 +129,6 @@ ui = true
   # start up uncustomized versions of nomad and consul
   setup-dnsmasq
   setup-certs
-
-  # One server in cluster gets marked for hosting repos with Persistent Volume requirements.
-  # Keeping things simple, and to avoid complex multi-host solutions like rook/ceph, we'll
-  # pass through these `/pv/` dirs from the VM/host to containers.  Each container using it
-  # needs to use a unique subdir...
-  for N in $(seq 1 ${PV_MAX?}); do
-    sudo mkdir -m777 -p ${PV_DIR?}/$N
-  done
 
   setup-daemons
 
@@ -308,8 +296,7 @@ client {
 '
 
   # We'll put a loadbalancer on all cluster nodes
-  # All jobs requiring a PV get put on first cluster node
-  local KIND='lb,pv'
+  local KIND='lb'
 
   echo '
   meta {
@@ -326,18 +313,7 @@ client {
   host_volume "home-rw" {
     path      = "/home"
     read_only = false
-  }'
-
-  # pass through disk from host for now.  peg project(s) with PV requirements to this host.
-  for N in $(seq 1 ${PV_MAX?}); do
-    echo -n '
-  host_volume "pv'$N'" {
-    path      = "'$PV_DIR'/'$N'"
-    read_only = false
-  }'
-  done
-
-  echo '
+  }
 }'
 
   set -x

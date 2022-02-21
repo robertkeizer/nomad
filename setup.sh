@@ -36,7 +36,6 @@ Overview:
   Installs consul server and client on all nodes
   Installs load balancer 'fabio' on all nodes
      (in case you want to use multiple IP addresses for deployments in case one LB/node is out)
-  Sets up Persistent Volume subdirs on 1st node - deployments needing PV only schedule to this node
 
 ----------------------------------------------------------------------------------------------------
 NOTE: if setup 3 nodes (h0, h1 & h2) on day 1; and want to add 2 more (h3 & h4) later,
@@ -116,8 +115,6 @@ function setup-env-vars() {
     # logical constants
     echo export CONSUL_ADDR="http://localhost:8500"
     echo export  FABIO_ADDR="http://localhost:9998"
-    echo export PV_MAX=20
-    echo export PV_DIR=/pv
 
     # Let's put LB/fabio and consul on all servers
     echo export LB_COUNT=${CLUSTER_SIZE?}
@@ -268,10 +265,8 @@ function setup-nomad {
   # get the encrypt value from the first node's configured nomad /etc/ file
   [ ${COUNT?} -ge 1 ]  &&  export TOK_N=$(ssh ${FIRST?} "egrep  'encrypt\s*=' ${NOMAD_HCL?}"  |cut -f2- -d= |tr -d '\t "' |cat)
 
-  # All jobs requiring a PV get put on first cluster node
   # We'll put a loadbalancer on all cluster nodes (unless installer wants otherwise)
   export KIND=""
-  [ ${COUNT?} -eq 0 ]  &&  export KIND="pv"
   if [ ${COUNT?} -lt ${LB_COUNT?} ]; then
     if [ "$KIND" = "" ]; then
       export KIND="lb"
@@ -295,18 +290,6 @@ function setup-nomad {
   [ ${COUNT?} -ge 1 ] && sudo sed -i -e 's^bootstrap_expect =.*$^^' $NOMAD_HCL
 
 
-  # First server in cluster gets marked for hosting repos with Persistent Volume requirements.
-  # Keeping things simple, and to avoid complex multi-host solutions like rook/ceph, we'll
-  # pass through these `/pv/` dirs from the VM/host to containers.  Each container using it
-  # needs to use a unique subdir...
-  # So we'll peg all deployed project(s) with PV requirements to first host.
-  (
-    echo 'client {'
-    for N in $(seq 1 ${PV_MAX?}); do
-      sudo mkdir -m777 -p ${PV_DIR?}/$N
-      echo '  host_volume "pv'$N'" { path = "'${PV_DIR?}'/'$N'" read_only = false }'
-    done
-    echo '}'
   ) |sudo tee -a $NOMAD_HCL
 
 

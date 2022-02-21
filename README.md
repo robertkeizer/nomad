@@ -62,9 +62,8 @@ NOMAD_VAR_HOSTNAMES
 NOMAD_VAR_MEMORY
 NOMAD_VAR_MULTI_CONTAINER
 NOMAD_VAR_NO_DEPLOY
+NOMAD_VAR_PERSISTENT_VOLUME
 NOMAD_VAR_PORTS
-NOMAD_VAR_PV
-NOMAD_VAR_PV_DB
 ```
 - See the top of [project.nomad](project.nomad)
 - Our customizations always prefix with `NOMAD_VAR_`.
@@ -289,13 +288,11 @@ Persistent Volumes (PV) are like mounted disks that get setup before your contai
 
 You can use PV to store files and data - especially nice for databases or otherwise (eg: retain `/var/lib/postgresql` through restarts, etc.)
 
-Your nomad cluster administrator has setup a series of "slots" - ask them for the next available slot for your project/repo (each project needs its own slot).
-
-Let's say the `pv8` slot is the next free slot in the system.  Here is how you'd update your project's
-`.gitlab-ci.yml` file, by adding these lines (suggest near top of your file):
+Here's how you'd update your project's `.gitlab-ci.yml` file,
+by adding these lines (suggest near top of your file):
 ```yaml
 variables:
-  NOMAD_VAR_PV: '{ pv8 = "/pv" }'
+  NOMAD_VAR_PERSISTENT_VOLUME: '/pv'
 ```
 Then the dir `/pv/` will show up (blank to start with) in your running container.
 
@@ -303,10 +300,10 @@ If you'd like to have the mounted dir show up somewhere besides `/pv` in your co
 you can setup like:
 ```yaml
 variables:
-  NOMAD_VAR_PV: '{ pv8 = "/var/lib/postgresql" }'
+  NOMAD_VAR_PERSISTENT_VOLUME: '/var/lib/postgresql'
 ```
 
-Please verify added/updated files persist through two repo CI/CD pipelines before adding important data and files.  Your DevOps teams will try to ensure the VM that holds the data is backed up - but that does not happen by default without some extra setup.  The host VM that holds the data is the first node in the cluster from the initial cluster setup (and it all lives at `/pv/`, in numbered subdirs).
+Please verify added/updated files persist through two repo CI/CD pipelines before adding important data and files.  Your DevOps teams will try to ensure the VM that holds the data is backed up - but that does not happen by default without some extra setup.  Your DevOps team must ensure each VM in the cluster has (the same) shared `/pv/` directory.  We presently use NFS for this (after some data corruption issues with glusterFS and rook/ceph).
 
 
 ## Postgres DB
@@ -316,7 +313,7 @@ We have a [postgresql example](https://git.archive.org/www/dwebcamp1), visible t
 variables:
   NOMAD_VAR_MULTI_CONTAINER: 'true'
   NOMAD_VAR_PORTS: '{ 5000 = "http", 5432 = "db" }'
-  NOMAD_VAR_PV: '{ pv1 = "/bitnami/postgresql" }'
+  NOMAD_VAR_PERSISTENT_VOLUME: '/bitnami/postgresql'
   NOMAD_VAR_CHECK_PROTOCOL: 'tcp'
 include:
   - remote: 'https://gitlab.com/internetarchive/nomad/-/raw/master/.gitlab-ci.yml'
@@ -343,11 +340,6 @@ POSTGRESQL_PASSWORD="${var.POSTGRESQL_PASSWORD}"
 EOH
     destination = "secrets/file.env"
     env         = true
-  }
-  volume_mount {
-    volume      = "pv1"
-    destination = "/bitnami/postgresql"
-    read_only   = false
   }
 }
 ```
