@@ -334,6 +334,7 @@ task "NOMAD_VAR_SLUG-db" {
   config {
     image = "docker.io/bitnami/postgresql:11.7.0-debian-10-r9"
     ports = ["db"]
+    volumes = ["/pv/${var.CI_PROJECT_PATH_SLUG}:/bitnami/postgresql"]
   }
   template {
     data = <<EOH
