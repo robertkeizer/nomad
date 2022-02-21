@@ -60,8 +60,8 @@ NOMAD_VAR_HEALTH_TIMEOUT
 NOMAD_VAR_HOME
 NOMAD_VAR_HOSTNAMES
 NOMAD_VAR_MEMORY
+NOMAD_VAR_MULTI_CONTAINER
 NOMAD_VAR_NO_DEPLOY
-NOMAD_VAR_PG
 NOMAD_VAR_PORTS
 NOMAD_VAR_PV
 NOMAD_VAR_PV_DB
@@ -146,6 +146,19 @@ Similar to prior example, but you can have your main deployment respond to multi
 variables:
   NOMAD_VAR_HOSTNAMES: '["www.example.com", "store.example.com"]'
 ```
+
+#### Multiple containers in same job spec
+If you want to run multiple containers in the same job and group, set this to true.  For example, you might want to run a Postgresql 3rd party container from bitnami, and have the main/http front-end container talk to it.  Being in the same group will ensure all containers run on the same VM; which makes communication between them extremely easy.  You simply need to inspect environment variables.
+
+You can see a minimal example of two containers with a "front end" talking to a "backend" here
+https://gitlab.com/internetarchive/nomad-multiple-tasks
+
+See also a [postgres DB setup example](#postgres-db).
+```yaml
+variables:
+  NOMAD_VAR_MULTI_CONTAINER: 'true'
+```
+
 #### Force `docker pull` before container starts
 If your deployment's job spec doesn't change between pipelines for some reason, you can set this to ensure `docker pull` always happens before your container starts up.  A good example where you might see this is a periodic/batch/cron process that fires up a pipeline without any repository commit.  Depending on your workflow and `Dockerfile` from there, if you see "stale" versions of containers, use this customization.
 ```yaml
@@ -158,7 +171,7 @@ There are even more, less common, ways to customize your deploys.
 
 With other variables, like `NOMAD_VAR_PORTS`, you can use dynamic port allocation, setup daemons that use raw TCP, and more.
 
-Please see the top area of [project.nomad](project.nomad) for "Persistent Volumes" (think a "disk" that survives container restarts), Postgres DB setup, additional open ports into your webapp, and more.
+Please see the top area of [project.nomad](project.nomad) for "Persistent Volumes" (think a "disk" that survives container restarts), additional open ports into your webapp, and more.
 
 See also [this section](#optional-add-ons-to-your-project) below.
 
@@ -297,18 +310,53 @@ Please verify added/updated files persist through two repo CI/CD pipelines befor
 
 
 ## Postgres DB
-Requirements:
-- set masked environment variables in your project's CI/CD Settings (see `Secrets` section above):
-  - `NOMAD_SECRET_POSTGRESQL_PASSWORD`
-- also, for 2nd (DB) container, set masked CI/CD var (same value as above):
-  - `NOMAD_VAR_POSTGRESQL_PASSWORD`
-- Your main/webapp container can find the DB IP addressd in its `Dockerfile`'s `CMD` line to setup DB access.
-  NOTE: The sleep should ensure `/alloc/data/*-db.ip` file gets created by DB Task 1st healthcheck
-  which the webapp Task (above) can read.
-```bash
-sleep 10  &&  \
-echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@$(cat /alloc/data/*-db.ip):5432/production >| .env && \
+We have a [postgresql example](https://git.archive.org/www/dwebcamp1), visible to archive.org folks.  But the gist, aside from a CI/CD Variable/Secret `POSTGRESQL_PASSWORD`, is:
+`.gitlab-ci.yml`:
+```yaml
+variables:
+  NOMAD_VAR_MULTI_CONTAINER: 'true'
+  NOMAD_VAR_PORTS: '{ 5000 = "http", 5432 = "db" }'
+  NOMAD_VAR_PV: '{ pv1 = "/bitnami/postgresql" }'
+  NOMAD_VAR_CHECK_PROTOCOL: 'tcp'
+include:
+  - remote: 'https://gitlab.com/internetarchive/nomad/-/raw/master/.gitlab-ci.yml'
 ```
+`vars.nomad`:
+```ini
+# used in @see group.nomad
+variable "POSTGRESQL_PASSWORD" {
+  type = string
+  default = ""
+}
+```
+`group.nomad`:
+```ini
+task "NOMAD_VAR_SLUG-db" {
+  driver = "docker"
+  config {
+    image = "docker.io/bitnami/postgresql:11.7.0-debian-10-r9"
+    ports = ["db"]
+  }
+  template {
+    data = <<EOH
+POSTGRESQL_PASSWORD="${var.POSTGRESQL_PASSWORD}"
+EOH
+    destination = "secrets/file.env"
+    env         = true
+  }
+  volume_mount {
+    volume      = "pv1"
+    destination = "/bitnami/postgresql"
+    read_only   = false
+  }
+}
+```
+`Dockerfile`: (setup DB env var, then fire up django front-end..)
+```
+...
+CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db}/production >| .env && python ..
+```
+
 
 ---
 

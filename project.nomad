@@ -116,12 +116,6 @@ variable "BIND_MOUNTS" {
   default = []
 }
 
-variable "PG" {
-  # Setup a postgres DB like NOMAD_VAR_PG='{ 5432 = "db" }' - or override port num if desired
-  type = map(string)
-  default = {}
-}
-
 variable "NOMAD_SECRETS" {
   # this is automatically populated with NOMAD_SECRET_ env vars by @see .gitlab-ci.yml
   type = map(string)
@@ -152,7 +146,7 @@ locals {
     {for k, v in local.ports_main : k => v if  var.MULTI_CONTAINER}))
 
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
-  ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, var.PG, {})
+  ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, {})
 
   # NOTE: 2rd arg is hcl2 quirk needed in case first arg is empty map as well
   pvs = merge(var.PV, {})
