@@ -174,7 +174,7 @@ locals {
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
   kv = join("\n", [for k, v in var.NOMAD_SECRETS : join("", concat([k, "='", v, "'"]))])
 
-  volumes = [for s in [var.PERSISTENT_VOLUME]: "/pv/${var.SLUG}:${var.PERSISTENT_VOLUME}" if s == ""]
+  volumes = [for s in [var.PERSISTENT_VOLUME]: "/pv/${var.SLUG}:${var.PERSISTENT_VOLUME}" if s != ""]
 }
 
 
