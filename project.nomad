@@ -60,6 +60,8 @@ variables {
   # For jobs with 2+ containers (and tasks) (so we can setup ports properly)
   MULTI_CONTAINER = false
 
+  PERSISTENT_VOLUME = ""
+
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
 }
@@ -171,6 +173,8 @@ locals {
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
   kv = join("\n", [for k, v in var.NOMAD_SECRETS : join("", concat([k, "='", v, "'"]))])
+
+  volumes = [for s in [var.PERSISTENT_VOLUME]: "/pv/${var.SLUG}:/${var.PERSISTENT_VOLUME}" if s == ""]
 }
 
 
@@ -316,6 +320,7 @@ job "NOMAD_VAR_SLUG" {
               network_mode = "${var.NETWORK_MODE}"
               ports = local.ports_docker
               mounts = var.BIND_MOUNTS
+              volumes = local.volumes
               # The MEMORY var now becomes a **soft limit**
               # We will 10x that for a **hard limit**
               memory_hard_limit = "${var.MEMORY * 10}"
@@ -331,6 +336,7 @@ job "NOMAD_VAR_SLUG" {
               network_mode = "${var.NETWORK_MODE}"
               ports = local.ports_docker
               mounts = var.BIND_MOUNTS
+              volumes = local.volumes
               # The MEMORY var now becomes a **soft limit**
               # We will 10x that for a **hard limit**
               memory_hard_limit = "${var.MEMORY * 10}"
@@ -405,6 +411,22 @@ job "NOMAD_VAR_SLUG" {
           config {
             command = var.CONSUL_PATH
             args = [ "kv", "put", var.SLUG, local.kv ]
+          }
+          lifecycle {
+            hook = "prestart"
+            sidecar = false
+          }
+        }
+      }
+
+      dynamic "task" {
+        for_each = [for s in [var.PERSISTENT_VOLUME]: s if s == ""]
+        labels = ["pv"]
+        content {
+          driver = "raw_exec"
+          config {
+            command = "mkdir"
+            args = [ "-p", "-m777", "'/pv/${var.SLUG}'" ]
           }
           lifecycle {
             hook = "prestart"
