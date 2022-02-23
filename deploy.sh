@@ -30,6 +30,7 @@ function main() {
     elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.us.archive.org:4646
     elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
     elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
+    elif [ "$BASE_DOMAIN" = "work.archive.org" ]; then export NOMAD_ADDR=https://work.archive.org
     fi
   fi
 
