@@ -23,6 +23,7 @@ function main() {
   # however, if repo has list of 1+ custom hostnames it wants to use instead for main/master branch
   # review app, then use them and log during [deploy] phase the first hostname in the list
   export HOSTNAME="${NOMAD_VAR_SLUG}.${BASE_DOMAIN}"
+  if [ "$BASE_DOMAIN" = "work.archive.org" ]; then export HOSTNAME="${CI_PROJECT_NAME}.${BASE_DOMAIN}"
 
   # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
