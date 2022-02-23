@@ -23,7 +23,7 @@ function main() {
   # however, if repo has list of 1+ custom hostnames it wants to use instead for main/master branch
   # review app, then use them and log during [deploy] phase the first hostname in the list
   export HOSTNAME="${NOMAD_VAR_SLUG}.${BASE_DOMAIN}"
-  if [ "$BASE_DOMAIN" = "work.archive.org" ]; then export HOSTNAME="${CI_PROJECT_NAME}.${BASE_DOMAIN}"
+  if [ "$BASE_DOMAIN" = "work.archive.org" ]; then export HOSTNAME="${CI_PROJECT_NAME}.${BASE_DOMAIN}"; fi
 
   # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
@@ -31,7 +31,6 @@ function main() {
     elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.us.archive.org:4646
     elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
     elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
-    elif [ "$BASE_DOMAIN" = "work.archive.org" ]; then export NOMAD_ADDR=https://work.archive.org
     fi
   fi
 
