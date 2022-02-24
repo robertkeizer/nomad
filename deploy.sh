@@ -15,7 +15,9 @@ function main() {
   # make a nice "slug" that is like [GROUP]-[PROJECT]-[BRANCH], each component also "slugged",
   # where "-main" or "-master" are omitted.  respect DNS limit of 63 max chars.
   export BRANCH_PART=""
-  if [ "$CI_COMMIT_REF_SLUG" != "main" -a "$CI_COMMIT_REF_SLUG" != "master" ]; then export BRANCH_PART="-${CI_COMMIT_REF_SLUG}"; fi
+  if [ "$CI_COMMIT_REF_SLUG" != "main"  -a  "$CI_COMMIT_REF_SLUG" != "master" ]; then
+    export BRANCH_PART="-${CI_COMMIT_REF_SLUG}"
+  fi
   export NOMAD_VAR_SLUG=$(echo "${CI_PROJECT_PATH_SLUG}${BRANCH_PART}" |cut -b1-63)
   # make nice (semantic) hostname, based on the slug, eg:
   #   services-timemachine.x.archive.org
@@ -23,7 +25,11 @@ function main() {
   # however, if repo has list of 1+ custom hostnames it wants to use instead for main/master branch
   # review app, then use them and log during [deploy] phase the first hostname in the list
   export HOSTNAME="${NOMAD_VAR_SLUG}.${BASE_DOMAIN}"
-  if [ "$BASE_DOMAIN" = "work.archive.org" ]; then export HOSTNAME="${CI_PROJECT_NAME}.${BASE_DOMAIN}"; fi
+
+  # make even nicer names for archive.org processing cluster deploys
+  if [ "$BASE_DOMAIN" = "work.archive.org" ]; then
+    export HOSTNAME="${CI_PROJECT_NAME}${BRANCH_PART}.${BASE_DOMAIN}"
+  fi
 
   # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
