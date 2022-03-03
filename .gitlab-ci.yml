@@ -22,8 +22,12 @@ stages:
 
 include:
   # GitLab Auto DevOps' stock CI/CD [build] phase:
-  - remote: 'https://gitlab.com/gitlab-org/gitlab-foss/-/raw/master/lib/gitlab/ci/templates/Jobs/Build.gitlab-ci.yml'
+  - remote: 'https://gitlab.com/gitlab-org/gitlab/-/raw/master/lib/gitlab/ci/templates/Jobs/Build.gitlab-ci.yml'
   # @see https://gitlab.com/gitlab-org/cluster-integration/auto-build-image/blob/master/src/build.sh
+  #
+  # NOTE: uho, this got gone 3/2/2022:
+  # - remote: 'https://gitlab.com/gitlab-org/gitlab-foss/-/raw/master/lib/gitlab/ci/templates/Jobs/Build.gitlab-ci.yml'
+
 
 
 deploy:
