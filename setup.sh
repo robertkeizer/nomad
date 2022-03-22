@@ -23,7 +23,10 @@ Usage: $MYSELF  [TLS_CRT file]  [TLS_KEY file]  <node 1>  <node 2>  ..
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
 
-If invoking cmd-line has env var NFSHOME=1 then we'll setup /home/ r/o and r/w mounts.
+If invoking cmd-line has env var:
+  NFSHOME=1                     -- then we'll setup /home/ r/o and r/w mounts
+  NFS_PV=[IP ADDRESS:MOUNT_DIR] -- then we'll setup each VM with /pv mounting your NFS server for
+                                   Persistent Volumes.  Example value: 1.1.1.1:/mnt/exports
 
 To simplify, we'll reuse TLS certs, setting up ACL and TLS for nomad.
 
@@ -127,6 +130,7 @@ function setup-env-vars() {
     echo export TLS_CRT=$TLS_CRT
     echo export TLS_KEY=$TLS_KEY
     echo export NFSHOME=$NFSHOME
+    echo export NFS_PV="$NFS_PV"
     echo export CLUSTER_SIZE=$CLUSTER_SIZE
 
     # this is normally 0, but if you later add nodes to an existing cluster, set this to
@@ -170,6 +174,7 @@ function setup-consul-and-certs() {
   cd /tmp
 
   setup-misc
+  setup-PV
   setup-certs
   setup-consul
   setup-404-page
@@ -408,6 +413,17 @@ function setup-certs() {
   sudo cp $CRT              /opt/nomad/tls/tls.crt
   sudo cp $KEY              /opt/nomad/tls/tls.key
   sudo chmod -R go-rwx      /opt/nomad/tls
+}
+
+
+function setup-PV() {
+  sudo mkdir -m777 -p /pv
+
+  if [ "$NFS_PV" ]; then
+    sudo apt-get install -yqq nfs-common
+    echo "$NFS_PV /pv nfs proto=tcp,nosuid,hard,intr,actimeo=1,nofail,noatime,nolock,tcp 0 0" |sudo tee -a /etc/fstab
+    sudo mount /pv
+  fi
 }
 
 
