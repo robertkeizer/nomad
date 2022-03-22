@@ -350,6 +350,7 @@ function setup-misc() {
   getr install-docker-ce.sh
   /tmp/install-docker-ce.sh
 
+  setup-ctop
 
   if [ -e /etc/ferm ]; then
     # archive.org uses `ferm` for port firewalling.
@@ -377,12 +378,10 @@ function setup-misc() {
     sudo sed -i -e 's^ReceiveBuffer=.*$^ReceiveBuffer=256M^' $FI
   fi
 
-  FI=/proc/sys/vm/dirty_bytes
-  if [ -e $FI ]; then
-    # Need more (3GB) dirty byte limit for `docker pull` untar phase, else they can fail repeatedly.
-    # IA Samuel only recomends on hosts w/ heavy fs metadata behavior + kernel 5.4 or newer for now.
-    echo 3221225472 |sudo tee $FI
-  fi
+
+  # Need more (3GB) dirty byte limit for `docker pull` untar phase, else they can fail repeatedly.
+  # IA Samuel only recomends on hosts w/ heavy fs metadata behavior + kernel 5.4 or newer for now.
+  [ -e /proc/sys/vm/dirty_bytes ]  &&  echo 3221225472 |sudo tee /proc/sys/vm/dirty_bytes
 }
 
 
@@ -409,6 +408,16 @@ function setup-certs() {
   sudo cp $CRT              /opt/nomad/tls/tls.crt
   sudo cp $KEY              /opt/nomad/tls/tls.key
   sudo chmod -R go-rwx      /opt/nomad/tls
+}
+
+
+function setup-ctop() {
+  # really nice `ctop` - a container monitoring more specialized version of `top`
+  # https://github.com/bcicen/ctop
+  echo "deb http://packages.azlux.fr/debian/ buster main" | sudo tee /etc/apt/sources.list.d/azlux.list
+  wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
+  sudo apt-get -yqq update
+  sudo apt-get install -yqq docker-ctop
 }
 
 
