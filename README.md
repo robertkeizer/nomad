@@ -406,6 +406,15 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 - ACME / `certmanager` for let's encrypt / https, etc.
   - basic https works now if the certs are managed independently (and passed into fabio)
 
+## Revisit in future if ever desired again
+```yml
+  # This allows us to more easily partition nodes (if desired) to run normal jobs like this (or not)
+  constraint {
+    attribute = "${meta.kind}"
+    operator = "set_contains"
+    value = "worker"
+  }
+```
 
 
 ## Gitlab runner issues

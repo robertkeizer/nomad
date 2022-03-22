@@ -118,13 +118,6 @@ variable "NOMAD_SECRETS" {
 }
 
 
-variable "NOT_PV" {
-  # DEPRECATED
-  type = list(string)
-  default = ["not pv"]
-}
-
-
 locals {
   # Ignore all this.  really :)
   job_names = [ "${var.SLUG}" ]
@@ -142,10 +135,6 @@ locals {
 
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, {})
-
-  kinds = [for k in [var.PERSISTENT_VOLUME]: "pv" if k != ""]
-  # DEPRECATED
-  kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
 
   # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
   docker_image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
@@ -444,24 +433,6 @@ job "NOMAD_VAR_SLUG" {
     healthy_deadline = "5m"
   }
 
-
-  # This allows us to more easily partition nodes (if desired) to run normal jobs like this (or not)
-  dynamic "constraint" {
-    for_each = slice(local.kinds, 0, min(1, length(local.kinds)))
-    content {
-      attribute = "${meta.kind}"
-      operator = "set_contains"
-      value = "${constraint.value}"
-    }
-  }
-  dynamic "constraint" {
-    for_each = slice(local.kinds_not, 0, min(1, length(local.kinds_not)))
-    content {
-      attribute = "${meta.kind}"
-      operator = "regexp"
-      value = "^(lb,*|worker,*)*$"
-    }
-  }
 
   # This next part is for GitHub repos.  Since the GH docker image name DOESNT change each commit,
   # yet we need to ensure the jobspec sent to nomad "changes" each commit/pipeline,

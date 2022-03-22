@@ -90,8 +90,6 @@ function main() {
 
 
   if [[ "$NOMAD_ADDR" == *crawl*.archive.org:* ]]; then
-    # this is temporary until NFS server is setup for persistent volumes
-    export NOMAD_VAR_NOT_PV='[]'
     export NOMAD_VAR_CONSUL_PATH='/usr/local/bin/consul'
   fi
 
