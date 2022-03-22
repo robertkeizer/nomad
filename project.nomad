@@ -68,12 +68,6 @@ variables {
   # special definitions to not have defaults or overrides be treated as strings.
 }
 
-# DEPRECATED
-variable "PV" {
-  type = map(string)
-  default = {}
-}
-
 variable "PORTS" {
   # You must have at least one key/value pair, with a single value of 'http'.
   # Each value is a string that refers to your port later in the project jobspec.
@@ -149,9 +143,8 @@ locals {
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, {})
 
+  kinds = [for k in [var.PERSISTENT_VOLUME]: "pv" if k != ""]
   # DEPRECATED
-  pvs = merge(var.PV, {})
-  kinds = concat([for k in keys(local.pvs): "pv"], [for k in [var.PERSISTENT_VOLUME]: "pv" if k != ""])
   kinds_not = slice(var.NOT_PV, 0, min(length(var.NOT_PV), max(0, (1 - length(local.kinds)))))
 
   # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
@@ -369,16 +362,6 @@ job "NOMAD_VAR_SLUG" {
             }
           }
 
-          # DEPRECATED
-          dynamic "volume_mount" {
-            for_each = local.pvs
-            content {
-              volume      = "${volume_mount.key}"
-              destination = "${volume_mount.value}"
-              read_only   = false
-            }
-          }
-
           dynamic "template" {
             # Secrets get stored in consul kv store, with the key [SLUG], when your project has set a
             # CI/CD variable like NOMAD_SECRET_[SOMETHING].
@@ -429,17 +412,6 @@ job "NOMAD_VAR_SLUG" {
           type      = "host"
           source    = "home-${volume.key}"
           read_only = false
-        }
-      }
-
-      # DEPRECATED
-      dynamic "volume" {
-        labels = [ volume.key ]
-        for_each = local.pvs
-        content {
-          type      = "host"
-          read_only = false
-          source    = "${volume.key}"
         }
       }
 
