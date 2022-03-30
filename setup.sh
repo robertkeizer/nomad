@@ -386,7 +386,8 @@ function setup-misc() {
 
   # Need more (3GB) dirty byte limit for `docker pull` untar phase, else they can fail repeatedly.
   # IA Samuel only recomends on hosts w/ heavy fs metadata behavior + kernel 5.4 or newer for now.
-  [ -e /proc/sys/vm/dirty_bytes ]  &&  echo 3221225472 |sudo tee /proc/sys/vm/dirty_bytes
+  # You can verify the value via: `cat /proc/sys/vm/dirty_bytes`
+  echo 'vm.dirty_bytes=3221225472' |sudo tee /etc/sysctl.d/90-vm-dirty_bytes.conf
 }
 
 
