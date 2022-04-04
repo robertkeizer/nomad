@@ -45,6 +45,8 @@ variables {
   # https://learn.hashicorp.com/tutorials/nomad/job-rolling-update
   COUNT = 1
 
+  COUNT_CANARIES = 1
+
   # Pass in "ro" or "rw" if you want an NFS /home/ mounted into container, as ReadOnly or ReadWrite
   HOME = ""
 
@@ -172,7 +174,7 @@ job "NOMAD_VAR_SLUG" {
         # https://learn.hashicorp.com/tutorials/nomad/job-rolling-update
         max_parallel  = 1
         # https://learn.hashicorp.com/tutorials/nomad/job-blue-green-and-canary-deployments
-        canary = var.COUNT
+        canary = var.COUNT_CANARIES
         auto_promote  = true
         min_healthy_time  = "30s"
         healthy_deadline  = "5m"
