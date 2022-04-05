@@ -154,6 +154,8 @@ locals {
   kv = join("\n", [for k, v in var.NOMAD_SECRETS : join("", concat([k, "='", v, "'"]))])
 
   volumes = [for s in [var.PERSISTENT_VOLUME]: "/pv/${var.CI_PROJECT_PATH_SLUG}:${var.PERSISTENT_VOLUME}" if s != ""]
+
+  auto_promote = concat([for v in [var.COUNT_CANARIES]: true if v > 0], [false])
 }
 
 
@@ -175,7 +177,7 @@ job "NOMAD_VAR_SLUG" {
         max_parallel  = 1
         # https://learn.hashicorp.com/tutorials/nomad/job-blue-green-and-canary-deployments
         canary = var.COUNT_CANARIES
-        auto_promote  = true
+        auto_promote  = local.auto_promote[0]
         min_healthy_time  = "30s"
         healthy_deadline  = "5m"
         progress_deadline = "10m"
