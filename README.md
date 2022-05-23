@@ -54,11 +54,13 @@ NOMAD_VAR_CHECK_PROTOCOL
 NOMAD_VAR_CHECK_TIMEOUT
 NOMAD_VAR_CONSUL_PATH
 NOMAD_VAR_COUNT
+NOMAD_VAR_COUNT_CANARIES
 NOMAD_VAR_CPU
 NOMAD_VAR_FORCE_PULL
 NOMAD_VAR_HEALTH_TIMEOUT
 NOMAD_VAR_HOME
 NOMAD_VAR_HOSTNAMES
+NOMAD_VAR_IS_BATCH
 NOMAD_VAR_MEMORY
 NOMAD_VAR_MULTI_CONTAINER
 NOMAD_VAR_NETWORK_MODE
@@ -165,6 +167,39 @@ If your deployment's job spec doesn't change between pipelines for some reason, 
 variables:
   NOMAD_VAR_FORCE_PULL: 'true'
 ```
+
+#### Turn off [deploy canaries](https://learn.hashicorp.com/tutorials/nomad/job-blue-green-and-canary-deployments)
+When a new deploy is happening, live traffic continues to old deploy about to be replaced, while a new deploy fires off in the background and `nomad` begins healthchecking.  Only once it seems healthy, is traffic cutover to the new container and the old container removed.  (If unhealthy, new container is removed).  That can mean *two* deploys can run simultaneously.  Depending on your setup and constraints, you might not want this and can disable canaries with this snippet below.  (Keep in mind your deploy will temporarily 404 during re-deploy *without* using blue/green deploys w/ canaries).
+```yaml
+variables:
+  NOMAD_VAR_COUNT_CANARIES: 0
+```
+
+#### Change your deploy to a cron-like batch/periodic
+If you deployment is something you want to run periodically, instead of continuously, you can use this variable to switch to a nomad `type="batch"`
+```yaml
+variables:
+  NOMAD_VAR_IS_BATCH: 'true'
+```
+Combine your `NOMAD_VAR_IS_BATCH` override, with a small `job.nomad` file in your repo to setup your cron behaviour.
+
+Example `job.nomad` file contents, to run the deploy every hour at 15m past the hour:
+```ini
+type = "batch"
+periodic {
+    cron = "15 * * * * *"
+    prohibit_overlap = false  # must be false cause of kv env vars task
+}
+```
+
+#### Custom deploy networking
+If your admin allows it, there might be some useful reasons to use VM host networking for your deploy.  A good example is "relaying" UDP *broadcast* messages in/out of a container.  Please see Tracey if interested, archive folks. :)
+```yaml
+variables:
+  NOMAD_VAR_NETWORK_MODE: 'host'
+```
+
+
 
 #### More customizations
 There are even more, less common, ways to customize your deploys.
@@ -308,7 +343,10 @@ Please verify added/updated files persist through two repo CI/CD pipelines befor
 
 
 ## Postgres DB
-We have a [postgresql example](https://git.archive.org/www/dwebcamp1), visible to archive.org folks.  But the gist, aside from a CI/CD Variable/Secret `POSTGRESQL_PASSWORD`, is:
+We have a [postgresql example](https://git.archive.org/www/dwebcamp2019), visible to archive.org folks.  But the gist, aside from a CI/CD Variable/Secret `POSTGRESQL_PASSWORD`, is below.
+
+_Keep in mind if you setup something like a database in a container, using a Persistent Volume (like below) you can get multiple containers each trying to write to your database backing store filesystem (one for production; one temporarily for production re-deploy "canary"; and similar 1 or 2 for every deployed branch (which is probably not what you want).  So you might want to look into `NOMAD_VAR_COUNT` and `NOMAD_VAR_COUNT_CANARIES` in that case._
+
 `.gitlab-ci.yml`:
 ```yaml
 variables:
@@ -316,6 +354,9 @@ variables:
   NOMAD_VAR_PORTS: '{ 5000 = "http", 5432 = "db" }'
   NOMAD_VAR_PERSISTENT_VOLUME: '/bitnami/postgresql'
   NOMAD_VAR_CHECK_PROTOCOL: 'tcp'
+  NOMAD_VAR_COUNT: 1
+  NOMAD_VAR_COUNT_CANARIES: 0
+
 include:
   - remote: 'https://gitlab.com/internetarchive/nomad/-/raw/master/.gitlab-ci.yml'
 ```

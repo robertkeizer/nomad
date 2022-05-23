@@ -66,6 +66,17 @@ variables {
   # We suggest "/pv".
   PERSISTENT_VOLUME = ""
 
+  /* You can overrride this for type="batch" and "cron-like" jobs (they rerun periodically & exit).
+     Combine this var override, with a small `job.nomad` in your repo to setup a cron,
+     with contents in the file like this, to run every hour at 15m past the hour:
+        type = "batch"
+        periodic {
+            cron = "15 * * * * *"
+            prohibit_overlap = false  # must be false cause of kv env vars task
+        }
+   */
+  IS_BATCH = false
+
   # There are more variables immediately after this - but they are "lists" or "maps" and need
   # special definitions to not have defaults or overrides be treated as strings.
 }
@@ -156,6 +167,9 @@ locals {
   volumes = [for s in [var.PERSISTENT_VOLUME]: "/pv/${var.CI_PROJECT_PATH_SLUG}:${var.PERSISTENT_VOLUME}" if s != ""]
 
   auto_promote = concat([for v in [var.COUNT_CANARIES]: true if v > 0], [false])
+
+  # make boolean-like array that can logically if/else out 2 `dynamic` blocks below for type=batch
+  service_type = [for v in [var.IS_BATCH]: "service" if !v]
 }
 
 
@@ -172,16 +186,19 @@ job "NOMAD_VAR_SLUG" {
     content {
       count = var.COUNT
 
-      update {
-        # https://learn.hashicorp.com/tutorials/nomad/job-rolling-update
-        max_parallel  = 1
-        # https://learn.hashicorp.com/tutorials/nomad/job-blue-green-and-canary-deployments
-        canary = var.COUNT_CANARIES
-        auto_promote  = local.auto_promote[0]
-        min_healthy_time  = "30s"
-        healthy_deadline  = "5m"
-        progress_deadline = "10m"
-        auto_revert   = true
+      dynamic "update" {
+        for_each = local.service_type
+        content {
+          # https://learn.hashicorp.com/tutorials/nomad/job-rolling-update
+          max_parallel  = 1
+          # https://learn.hashicorp.com/tutorials/nomad/job-blue-green-and-canary-deployments
+          canary = var.COUNT_CANARIES
+          auto_promote  = local.auto_promote[0]
+          min_healthy_time  = "30s"
+          healthy_deadline  = "5m"
+          progress_deadline = "10m"
+          auto_revert   = true
+        }
       }
       restart {
         attempts = 3
@@ -430,11 +447,14 @@ job "NOMAD_VAR_SLUG" {
     attribute = "${node.unique.id}"
   }
 
-  migrate {
-    max_parallel = 3
-    health_check = "checks"
-    min_healthy_time = "15s"
-    healthy_deadline = "5m"
+  dynamic "migrate" {
+    for_each = local.service_type
+    content {
+      max_parallel = 3
+      health_check = "checks"
+      min_healthy_time = "15s"
+      healthy_deadline = "5m"
+    }
   }
 
 
