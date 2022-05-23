@@ -48,6 +48,10 @@ proto tcp dport 8990 ACCEPT;
 proto tcp dport 7777 ACCEPT;
 proto tcp dport 8889 ACCEPT;
 
+#   services/scribe-loki:  3000 = "grafana", 9090 = "prometheus"
+proto tcp dport 3000 ACCEPT;
+proto tcp dport 9090 ACCEPT;
+
 #   testing:
 proto tcp dport 8200 ACCEPT;
 
