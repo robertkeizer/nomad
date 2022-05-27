@@ -15,7 +15,7 @@ set -x
 TLS_DOMAIN=
 SINGLETONS=
 [ $# -eq 1 ]  &&  TLS_DOMAIN=$1
-[ $# -gt 2 ]  &&  SINGLETONS=$@
+[ $# -gt 1 ]  &&  SINGLETONS=$@
 
 BASENAME=$TLS_DOMAIN
 [ $SINGLETONS ]  &&  BASENAME=$2
