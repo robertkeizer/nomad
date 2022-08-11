@@ -22,7 +22,11 @@ stages:
 
 include:
   # GitLab Auto DevOps' stock CI/CD [build] phase:
-  - remote: 'https://gitlab.com/gitlab-org/gitlab/-/raw/master/lib/gitlab/ci/templates/Jobs/Build.gitlab-ci.yml'
+  - '/build.yml'
+  # NOTE: uho, cant pull this from our self-hosted gitlab runner suddenly 8/11/2022
+  # so copied the remote file below to `build.yml` and changed the main image to:
+  #   registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image
+  # - remote: 'https://gitlab.com/gitlab-org/gitlab/-/raw/master/lib/gitlab/ci/templates/Jobs/Build.gitlab-ci.yml'
   # @see https://gitlab.com/gitlab-org/cluster-integration/auto-build-image/blob/master/src/build.sh
   #
   # NOTE: uho, this got gone 3/2/2022:

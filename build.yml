@@ -1,9 +1,17 @@
+# Tracey 8/11/2022:
+# This is the stock version from:
+# https://gitlab.com/gitlab-org/gitlab/-/raw/master/lib/gitlab/ci/templates/Jobs/Build.gitlab-ci.yml
+#
+# with the only change to the `image:` below, since that stopped being `docker pull`-able from
+# our self-hosted gitlab runners, suddenly.  (gitlab.com runners for gitlab.com projects were fine)
+
 variables:
   AUTO_BUILD_IMAGE_VERSION: 'v1.14.0'
 
 build:
   stage: build
-  image: '${CI_TEMPLATE_REGISTRY_HOST}/gitlab-org/cluster-integration/auto-build-image:${AUTO_BUILD_IMAGE_VERSION}'
+  # image: '${CI_TEMPLATE_REGISTRY_HOST}/gitlab-org/cluster-integration/auto-build-image:${AUTO_BUILD_IMAGE_VERSION}'
+  image: registry.gitlab.com/internetarchive/auto-build-image:v1.14.0
   variables:
     DOCKER_TLS_CERTDIR: ''
   services:
