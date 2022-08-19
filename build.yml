@@ -4,6 +4,7 @@
 #
 # with the only change to the `image:` below, since that stopped being `docker pull`-able from
 # our self-hosted gitlab runners, suddenly.  (gitlab.com runners for gitlab.com projects were fine)
+# @see https://gitlab.com/internetarchive/auto-build-image
 
 variables:
   AUTO_BUILD_IMAGE_VERSION: 'v1.14.0'
@@ -11,7 +12,7 @@ variables:
 build:
   stage: build
   # image: '${CI_TEMPLATE_REGISTRY_HOST}/gitlab-org/cluster-integration/auto-build-image:${AUTO_BUILD_IMAGE_VERSION}'
-  image: registry.gitlab.com/internetarchive/auto-build-image:v1.14.0
+  image: registry.gitlab.com/internetarchive/auto-build-image/main:latest
   variables:
     DOCKER_TLS_CERTDIR: ''
   services:
