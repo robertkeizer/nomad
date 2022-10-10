@@ -93,6 +93,9 @@ function main() {
     export NOMAD_VAR_CONSUL_PATH='/usr/local/bin/consul'
   fi
 
+  if [ "$CI_R2_USER" = "0" ]; then unset CI_R2_USER; fi
+  if [ "$CI_R2_PASS" = "0" ]; then unset CI_R2_PASS; fi
+
   ############################### NOMAD VARS SETUP ##############################
 
 
