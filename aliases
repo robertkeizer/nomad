@@ -287,8 +287,8 @@ function line () {
 
 
 function nom-tunnel() {
-  # Sets up an ssh tunnel in the background to be able to talk to nomad cluster's consul and fabio.
+  # Sets up an ssh tunnel in the background to be able to talk to nomad cluster's consul.
   [ "$NOMAD_ADDR" = "" ]  &&  echo "Please set NOMAD_ADDR environment variable first"  &&  return
   local HOST=$(echo "$NOMAD_ADDR" | sed 's/:4646\/*$//' |sed 's/^https*:\/\///')
-  ssh -fNA -L 8500:$HOST:8500 -L 9998:$HOST:9998 $HOST
+  ssh -fNA -L 8500:$HOST:8500 $HOST
 }
