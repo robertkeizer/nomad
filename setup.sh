@@ -2,6 +2,13 @@
 
 # One time setup of server(s) to make a nomad cluster.
 
+# xxx https://caddy.community/t/how-to-use-hsts-for-proxied-http-server/5301
+# xxx (fabio) get client IP sent to containers     "-proxy.header.clientip", "X-Forwarded-For",
+# xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2  tcp:8200  tcp:7777
+# xxx http:8989     http://ain.mydomain.ru { reverse_proxy ain-frontend:80 }}
+
+
+
 
 MYDIR=${0:a:h}
 MYSELF=$MYDIR/setup.sh
@@ -16,10 +23,11 @@ function usage() {
 Usage: $MYSELF  [TLS_CRT file]  [TLS_KEY file]  <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
-[TLS_CRT file] - wildcard domain cert file location, PEM format.  eg: .../archive.org-cert.pem
-[TLS_KEY file] - wildcard domain  key file location, PEM format.  eg: .../archive.org-key.pem
+[TLS_CRT file] - cert file location, PEM format.  eg: .../archive.org-cert.pem
+[TLS_KEY file] - key  file location, PEM format.  eg: .../archive.org-key.pem
     File locations can be local to each VM
-    or in \`rsync\` format where you prepend '[SERVER]:' in the filename
+    or in `rsync` format where you prepend '[SERVER]:' in the filename
+    We use to setup ACL and TLS for nomad.
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
 
@@ -28,21 +36,19 @@ If invoking cmd-line has env var:
   NFS_PV=[IP ADDRESS:MOUNT_DIR] -- then we'll setup each VM with /pv mounting your NFS server for
                                    Persistent Volumes.  Example value: 1.1.1.1:/mnt/exports
 
-To simplify, we'll reuse TLS certs, setting up ACL and TLS for nomad.
-
 ----------------------------------------------------------------------------------------------------
 Assumes you are creating cluster with debian/ubuntu VMs/baremetals,
 that you have ssh and sudo access to.
 
 Overview:
-  Installs nomad server and client on all nodes, securely talking together & electing a leader
-  Installs consul server and client on all nodes
-  Installs load balancer 'fabio' on all nodes
+  Installs 'nomad'  server and client on all nodes, securely talking together & electing a leader
+  Installs 'consul' server and client on all nodes
+  Installs load balancer 'caddy' on all nodes
      (in case you want to use multiple IP addresses for deployments in case one LB/node is out)
 
 ----------------------------------------------------------------------------------------------------
 NOTE: if setup 3 nodes (h0, h1 & h2) on day 1; and want to add 2 more (h3 & h4) later,
-you should manually change 2 lines in \`setup-env-vars()\` in script -- look for INITIAL_CLUSTER_SIZE
+you should manually change 2 lines in `setup-env-vars()` in script -- look for INITIAL_CLUSTER_SIZE
 
 "
   exit 1
@@ -69,6 +75,7 @@ function main() {
     # Now get nomad configured and up - run "setup-nomad" on all VMs.
     for NODE in ${NODES?}; do
       ssh $NODE  /tmp/setup.sh  setup-nomad
+      ssh $NODE  /tmp/setup.sh  setup-caddy
     done
 
     finish
@@ -78,6 +85,9 @@ function main() {
 
   elif [ "$1" = "setup-nomad" ]; then
     setup-nomad
+
+  elif [ "$1" = "setup-caddy" ]; then
+    setup-caddy
 
   else
     usage "$@"
@@ -110,6 +120,7 @@ function setup-env-vars() {
   local INITIAL_CLUSTER_SIZE=0
   FIRST=$NODES[1]
 
+  ARCH=$(dpkg --print-architecture)
 
   FIRST_FQDN=$(ssh $FIRST hostname -f)
 
@@ -117,10 +128,9 @@ function setup-env-vars() {
   (
     # logical constants
     echo export CONSUL_ADDR="http://localhost:8500"
-    echo export  FABIO_ADDR="http://localhost:9998"
 
-    # Let's put LB/fabio and consul on all servers
-    echo export LB_COUNT=${CLUSTER_SIZE?}
+    # Let's put caddy and consul on all servers
+    echo export CADDY_COUNT=${CLUSTER_SIZE?}
     echo export CONSUL_COUNT=${CLUSTER_SIZE?}
 
     echo export NOMAD_ADDR="https://${FIRST_FQDN?}:4646"
@@ -184,7 +194,7 @@ function setup-consul-and-certs() {
 function setup-consul() {
   # sets up consul
   curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-  sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+  sudo apt-add-repository "deb [arch=$ARCH] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
   sudo apt-get -yqq update
 
   # install binaries and service files
@@ -270,17 +280,6 @@ function setup-nomad {
   # get the encrypt value from the first node's configured nomad /etc/ file
   [ ${COUNT?} -ge 1 ]  &&  export TOK_N=$(ssh ${FIRST?} "egrep  'encrypt\s*=' ${NOMAD_HCL?}"  |cut -f2- -d= |tr -d '\t "' |cat)
 
-  # We'll put a loadbalancer on all cluster nodes (unless installer wants otherwise)
-  export KIND=""
-  if [ ${COUNT?} -lt ${LB_COUNT?} ]; then
-    if [ "$KIND" = "" ]; then
-      export KIND="lb"
-    else
-      export KIND="$KIND,lb"
-    fi
-  fi
-
-
   export HOME_NFS=/tmp/home
   [ $NFSHOME ]  &&  export HOME_NFS=/home
 
@@ -314,10 +313,6 @@ function setup-nomad {
   echo "================================================================================"
   ( set -x; nomad node status )
   echo "================================================================================"
-
-
-  # install fabio/loadbalancer across all nodes
-  nomad run ${REPO?}/etc/fabio.hcl
 }
 
 
@@ -345,6 +340,21 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
   source $CONF
 }
 
+
+function setup-caddy() {
+  getr etc/Caddyfile.ctmpl
+
+  sudo apt-get -yqq install  consul-template
+
+  # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+  sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+    |sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+    |sudo tee /etc/apt/sources.list.d/caddy-stable.list
+  sudo apt-get -yqq update
+  sudo apt-get -yqq install caddy
+}
 
 
 function setup-misc() {
@@ -392,28 +402,13 @@ function setup-misc() {
 
 
 function setup-certs() {
-  # sets up https / TLS  and fabio for routing, loadbalancing, and https traffic
-  local DOMAIN=$(echo ${FIRST_FQDN?} |cut -f2- -d.)
-  local CRT=/etc/fabio/ssl/${DOMAIN?}-cert.pem
-  local KEY=/etc/fabio/ssl/${DOMAIN?}-key.pem
-
-  sudo mkdir -p         /etc/fabio/ssl/
-  sudo chown root:root  /etc/fabio/ssl/
-  wget -qO- ${REPO?}/etc/fabio.properties |sudo tee /etc/fabio/fabio.properties
-
-  sudo rsync -Pav ${TLS_CRT?} ${CRT?}
-  sudo rsync -Pav ${TLS_KEY?} ${KEY?}
-
-  sudo chown root:root ${CRT} ${KEY}
-  sudo chmod 444 ${CRT}
-  sudo chmod 400 ${KEY}
-
-
-  # setup nomad w/ same https certs so they can talk to each other, and we can talk to them securely
-  sudo mkdir -m 500 -p      /opt/nomad/tls
-  sudo cp $CRT              /opt/nomad/tls/tls.crt
-  sudo cp $KEY              /opt/nomad/tls/tls.key
-  sudo chmod -R go-rwx      /opt/nomad/tls
+  # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely
+  sudo mkdir -m 500 -p        /opt/nomad/tls
+  sudo chmod -R go-rwx        /opt/nomad/tls
+  sudo rsync -Pav ${TLS_CRT?} /opt/nomad/tls/tls.crt
+  sudo rsync -Pav ${TLS_KEY?} /opt/nomad/tls/tls.key
+  sudo chmod 444 /opt/nomad/tls/tls.crt
+  sudo chmod 400 /opt/nomad/tls/tls.key
 }
 
 
@@ -439,7 +434,7 @@ function setup-ctop() {
 
 
 function setup-404-page() {
-  # sets up a "hostname not found" custom 404 page for fabio/LB to emit
+  # sets up a "hostname not found" custom 404 page for fabio/LB to emit xxx
   if [[ "${FIRST_FQDN?}" == *archive.org* ]]; then
     getr etc/archive.org/404.min.html
     consul kv put 'fabio/noroute.html' "$(cat /tmp/404.min.html)"
@@ -461,7 +456,7 @@ function finish() {
 
 💥 CONGRATULATIONS!  Your cluster is setup. 💥
 
-You can get started with the UI for: nomad consul fabio here:
+You can get started with the UI for: nomad & consul here:
 
 Nomad  (deployment: managements & scheduling):
 ( https://www.nomadproject.io )
@@ -472,9 +467,8 @@ Consul (networking: service discovery & health checks, service mesh, envoy, secr
 ( https://www.consul.io )
 $CONSUL_ADDR
 
-Fabio  (routing: load balancing, ingress/edge router, https and http2 termination (to http))
-( https://fabiolb.net )
-$FABIO_ADDR
+Caddy  (routing: load balancing, ingress router, https and http2 termination (to http))
+( https://caddyserver.com/ )
 
 
 

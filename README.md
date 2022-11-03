@@ -17,7 +17,7 @@ This also contains demo "hi world" webapp.
 Uses:
 - [nomad](https://www.nomadproject.io) **deployment** (management, scheduling)
 - [consul](https://www.consul.io) **networking** (service mesh, service discovery, envoy, secrets storage & replication)
-- [fabio](https://fabiolb.net) **routing** (load balancing)
+- [caddy](https://caddyserver.com/) **routing** (load balancing, automatic https)
 
 ![Architecture](overview2.drawio.svg)
 
@@ -275,7 +275,6 @@ Options:
   - then enter your `$NOMAD_TOKEN`
 - @see [aliases](aliases)  `nom-tunnel`
   - http://localhost:8500  # consul
-  - http://localhost:9998  # fabio
 
 
 # Inspect, poke around
@@ -420,12 +419,6 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 - https://weekly-geekly.github.io/articles/453322/index.html
 - https://www.haproxy.com/blog/haproxy-and-consul-with-dns-for-service-discovery/
 - https://www.youtube.com/watch?v=gf43TcWjBrE  Kelsey Hightower, HashiConf 2016
-- https://fabiolb.net/quickstart/
-
-## Helpful for https / certs
-- https://github.com/fabiolb/fabio/wiki/Certificate-Stores#examples
-- https://developer.epages.com/blog/tech-stories/managing-lets-encrypt-certificates-in-vault/
-- https://github.com/acmesh-official/acme.sh#11-issue-wildcard-certificates
 
 ## Pick your container stack / testimonials
 - https://www.hashicorp.com/blog/hashicorp-joins-the-cncf/
@@ -444,8 +437,6 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 
 # Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
-- ACME / `certmanager` for let's encrypt / https, etc.
-  - basic https works now if the certs are managed independently (and passed into fabio)
 
 ## Revisit in future if ever desired again
 ```yml

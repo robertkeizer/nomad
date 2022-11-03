@@ -1,6 +1,6 @@
 #!/bin/zsh -e
 
-# Upgrades a cluster to latest:  nomad  consul  fabio
+# Upgrades a cluster to latest:  nomad  consul  caddy  consul-template
 
 # Check these and upgrading version notes/warnings, linked in each, first:
 #   https://www.nomadproject.io/docs/upgrade
@@ -17,11 +17,13 @@ MYDIR=${0:a:h}
 
 
 
-# upgrade nomad
+# upgrade hashicorp pkgs
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
 sudo apt-get -yqq update
 
+
+# upgrade nomad
 apt-cache madison nomad |head -1
 
 sudo apt-get -yqq install nomad
@@ -32,7 +34,6 @@ sudo systemctl restart nomad
 
 
 
-
 # upgrade consul
 apt-cache madison consul |head -1
 
@@ -40,10 +41,18 @@ sudo apt-get -yqq install consul
 
 apt-cache madison consul |head -1
 
-
 sudo consul leave
 sudo systemctl restart consul
 
+
+# upgrade consul-template
+apt-cache madison consul-template |head -1
+
+sudo apt-get -yqq install consul-template
+
+apt-cache madison consul-template |head -1
+
+sudo systemctl restart consul-template xxx
 
 
 # upgrade fabio
