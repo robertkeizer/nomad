@@ -295,9 +295,6 @@ function setup-nomad {
   [ ${COUNT?} -ge 1 ] && sudo sed -i -e 's^bootstrap_expect =.*$^^' $NOMAD_HCL
 
 
-  ) |sudo tee -a $NOMAD_HCL
-
-
   # restart and give a few seconds to ensure server responds
   sudo systemctl restart nomad  &&  sleep 10
 
