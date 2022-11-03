@@ -367,6 +367,9 @@ function setup-misc() {
 
   setup-ctop
 
+  # avoid death by `odcker pull` timeout nomad kills relooping and destroying i/o throughput
+  echo '{ "max-download-attempts": 1 }' >| /etc/docker/daemon.json
+
   if [ -e /etc/ferm ]; then
     # archive.org uses `ferm` for port firewalling.
     # Open the minimum number of HTTP/TCP/UDP ports we need to run.
