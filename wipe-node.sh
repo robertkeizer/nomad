@@ -37,6 +37,8 @@ done
 
 rm -fv /etc/ferm/*/nomad.conf  /etc/dnsmasq.d/nomad  /etc/Caddyfile*
 
+rm -fv /tmp/setup.env  /tmp/setup.sh  xxx
+
 service ferm reload
 
 [ -e /pv ]  &&  echo "

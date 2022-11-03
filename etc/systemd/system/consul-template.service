@@ -1,0 +1,12 @@
+[Unit]
+Description=consul-template
+Requires=network-online.target
+After=network-online.target consul.service
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/consul-template
+Restart=on-failure
+ExecStart=/usr/local/sbin/consul-template -template "/etc/Caddyfile.ctmpl:/etc/caddy/Caddyfile:/bin/bash -c 'cd /etc/caddy; /usr/bin/caddy reload || true'"
+
+[Install]
+WantedBy=multi-user.target

@@ -2,6 +2,7 @@
 
 # One time setup of server(s) to make a nomad cluster.
 
+# xxx make it so can skip passing in certs and use caddy to mint certs for nomad TLS (expire in 90d!)
 # xxx https://caddy.community/t/how-to-use-hsts-for-proxied-http-server/5301
 # xxx (fabio) get client IP sent to containers     "-proxy.header.clientip", "X-Forwarded-For",
 # xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2  tcp:8200  tcp:7777
@@ -43,7 +44,7 @@ that you have ssh and sudo access to.
 Overview:
   Installs 'nomad'  server and client on all nodes, securely talking together & electing a leader
   Installs 'consul' server and client on all nodes
-  Installs load balancer 'caddy' on all nodes
+  Installs 'caddy' load balancer on all nodes
      (in case you want to use multiple IP addresses for deployments in case one LB/node is out)
 
 ----------------------------------------------------------------------------------------------------
@@ -343,6 +344,11 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 
 function setup-caddy() {
   getr etc/Caddyfile.ctmpl
+  mv  /tmp/Caddyfile.ctmpl /etc/
+
+  getr etc/systemd/system/consul-template.service
+  mv  /tmp/consul-template.service  /etc/systemd/system/
+
 
   sudo apt-get -yqq install  consul-template
 
