@@ -12,7 +12,7 @@ sudo mkdir -p /etc/ferm/forward
 FI=/etc/ferm/input/nomad.conf
 set +x
 echo '
-# @see https://gitlab.com/internetarchive/nomad/-/blob/master/ports-unblock.sh
+# @see https://gitlab.com/internetarchive/nomad/-/blob/master/bin/ports-unblock.sh
 
 
 # ===== WORLD OPEN =======================================================================

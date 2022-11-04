@@ -107,8 +107,8 @@ function setup-env-vars() {
   unset   NOMAD_ADDR
 
 
-  TLS_CRT=$1  # @see create-https-certs.sh - fully qualified path to crt file it created
-  TLS_KEY=$2  # @see create-https-certs.sh - fully qualified path to key file it created
+  TLS_CRT=$1  # @see bin/create-https-certs.sh - fully qualified path to crt file it created
+  TLS_KEY=$2  # @see bin/create-https-certs.sh - fully qualified path to key file it created
   shift
   shift
 
@@ -372,7 +372,7 @@ function setup-misc() {
   sudo apt-get -yqq install  wget
 
   # install docker if not already present
-  getr install-docker-ce.sh
+  getr bin/install-docker-ce.sh
   /tmp/install-docker-ce.sh
 
   setup-ctop
@@ -383,7 +383,7 @@ function setup-misc() {
   if [ -e /etc/ferm ]; then
     # archive.org uses `ferm` for port firewalling.
     # Open the minimum number of HTTP/TCP/UDP ports we need to run.
-    getr ports-unblock.sh
+    getr bin/ports-unblock.sh
     /tmp/ports-unblock.sh
     sudo service docker restart  ||  echo 'no docker yet'
   fi
@@ -489,7 +489,7 @@ For localhost urls above - see 'nom-tunnel' alias here:
   https://gitlab.com/internetarchive/nomad/-/blob/master/aliases
 
 To uninstall:
-  https://gitlab.com/internetarchive/nomad/-/blob/master/wipe-node.sh
+  https://gitlab.com/internetarchive/nomad/-/blob/master/bin/wipe-node.sh
 
 
 "

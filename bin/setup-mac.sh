@@ -347,7 +347,7 @@ function finish() {
   read cont
 
   if [ "$cont" = "yes" ]; then
-    getr setup-runner.sh
+    getr bin/setup-runner.sh
     /tmp/setup-runner.sh
   fi
 
@@ -377,7 +377,7 @@ For localhost urls above - see 'nom-tunnel' alias here:
   https://gitlab.com/internetarchive/nomad/-/blob/master/aliases
 
 To uninstall:
-  https://gitlab.com/internetarchive/nomad/-/blob/master/wipe-node.sh
+  https://gitlab.com/internetarchive/nomad/-/blob/master/bin/wipe-node.sh
 
 
 

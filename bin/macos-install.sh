@@ -196,7 +196,7 @@ $FABIO_ADDR
 
 
 To uninstall:
-  https://gitlab.com/internetarchive/nomad/-/blob/master/macos-uninstall.sh
+  https://gitlab.com/internetarchive/nomad/-/blob/master/bin/macos-uninstall.sh
 
 
 

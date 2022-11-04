@@ -19,7 +19,7 @@ Uses:
 - [consul](https://www.consul.io) **networking** (service mesh, service discovery, envoy, secrets storage & replication)
 - [caddy](https://caddyserver.com/) **routing** (load balancing, automatic https)
 
-![Architecture](overview2.drawio.svg)
+![Architecture](img/overview2.drawio.svg)
 
 
 ## Want to deploy to nomad? 🚀
@@ -221,13 +221,13 @@ Setting up your repo to deploy to production is easy!
 
 - add a CI/CD Secret `NOMAD_TOKEN_PROD` with the nomad cluster value (ask tracey or matt)
   - make it: protected, masked
-![Production CI/CD Secret](etc/prod.jpg)
+![Production CI/CD Secret](img/prod.jpg)
 - Make a new branch named `production` (presumably from your repo's latest `main` or `master` branch)
   - It should now deploy your project to a different `NOMAD_ADDR` url
   - Your default hostname domain will change from `.dev.archive.org` to `.prod.archive.org`
 - [GitLab only] - [Protect the `production` branch](https://docs.gitlab.com/ee/user/project/protected_branches.html)
   - suggest using same settings as your `main` or `master` (or default) branch
-![Protect a branch](etc/protect.jpg)
+![Protect a branch](img/protect.jpg)
 
 
 ## Laptop access
@@ -250,7 +250,7 @@ Setting up your repo to deploy to production is easy!
 - [setup.sh](setup.sh)
   - you can customize the install with these environment variables:
     - `NFSHOME=1` - setup some minor config to support a r/w `/home/` and r/o `/home/`
-- [setup-mac.sh](setup-mac.sh)
+- [bin/setup-mac.sh](bin/setup-mac.sh)
   - setup single-node cluster on your mac laptop
 
 Options:
@@ -314,7 +314,7 @@ wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 
 ## Secrets
 In your project/repo Settings, set CI/CD environment variables starting with `NOMAD_SECRET_`, marked `Masked` but _not_ `Protected`, eg:
-![Secrets](etc/secrets.jpg)
+![Secrets](img/secrets.jpg)
 and they will show up in your running container as environment variables, named with the lead `NOMAD_SECRET_` removed.  Thus, you can get `DATABASE_URL` (etc.) set in your running container - but not have it anywhere else in your docker image and not printed/shown during CI/CD pipeline phase logging.
 
 
@@ -462,7 +462,7 @@ gitlab-runner start
 
 
 # Multi-node architecture
-![Architecture](architecture.drawio.svg)
+![Architecture](img/architecture.drawio.svg)
 
 
 # Requirements for archive.org CI/CD
