@@ -435,6 +435,8 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 - https://github.com/hashicorp/consul-esm  (external service monitoring for Consul)
 - https://github.com/timperrett/hashpi (🍓raspberry PI mini cluster 😊)
 
+# Miscellaneous
+- client IP addresses will be in request header 'X-Forwarded-For' (per `caddy`)
 # Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
 

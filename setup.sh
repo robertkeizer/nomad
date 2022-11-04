@@ -21,10 +21,11 @@ REPO=https://gitlab.com/internetarchive/nomad/-/raw/master
 function usage() {
   echo "
 ----------------------------------------------------------------------------------------------------
-Usage: $MYSELF  [TLS_CRT file OR -]  [TLS_KEY file OR -]  <node 1>  <node 2>  ..
+Usage: $MYSELF  [- OR TLS_CRT file]  [- OR TLS_KEY file]  <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
 You can pass in '-' for TLS_CRT and TLS_KEY arguments -- and we'll use lets encrypt generated certs
+that we'll create via \`caddy\`.
 BUT NOTE: they will expire in 90 days and you may need to re-copy the certs and restart nomad.
 
 Make your first node be a FULLY-QUALIFIED DOMAIN NAME
