@@ -8,6 +8,9 @@
 # xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2  tcp:8200  tcp:7777
 # xxx http:8989     http://ain.mydomain.ru { reverse_proxy ain-frontend:80 }}
 
+# HO=$(hostname -f);
+# LE=/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/
+# setup.sh   $LE/$HO/$HO.crt  $LE/$HO/$HO.key   $HO    # xxx
 
 
 
@@ -121,8 +124,6 @@ function setup-env-vars() {
   local INITIAL_CLUSTER_SIZE=0
   FIRST=$NODES[1]
 
-  ARCH=$(dpkg --print-architecture)
-
   FIRST_FQDN=$(ssh $FIRST hostname -f)
 
   # write all our needed environment variables to a file
@@ -195,6 +196,7 @@ function setup-consul-and-certs() {
 function setup-consul() {
   # sets up consul
   curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+  ARCH=$(dpkg --print-architecture)
   sudo apt-add-repository "deb [arch=$ARCH] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
   sudo apt-get -yqq update
 
@@ -282,6 +284,7 @@ function setup-nomad {
   [ ${COUNT?} -ge 1 ]  &&  export TOK_N=$(ssh ${FIRST?} "egrep  'encrypt\s*=' ${NOMAD_HCL?}"  |cut -f2- -d= |tr -d '\t "' |cat)
 
   export HOME_NFS=/tmp/home
+  mkdir -p $HOME_NFS
   [ $NFSHOME ]  &&  export HOME_NFS=/home
 
 
@@ -340,13 +343,6 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 
 
 function setup-caddy() {
-  getr etc/Caddyfile.ctmpl
-  mv  /tmp/Caddyfile.ctmpl /etc/
-
-  getr etc/systemd/system/consul-template.service
-  mv  /tmp/consul-template.service  /etc/systemd/system/
-
-
   sudo apt-get -yqq install  consul-template
 
   # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
@@ -357,8 +353,19 @@ function setup-caddy() {
     |sudo tee /etc/apt/sources.list.d/caddy-stable.list
   sudo apt-get -yqq update
   sudo apt-get -yqq install caddy
-}
 
+  getr     etc/caddy/Caddyfile.ctmpl
+  sudo mv /tmp/Caddyfile.ctmpl /etc/caddy/
+
+  echo HOSTNAME=$(hostname -f) |sudo tee /etc/caddy/env
+
+  getr etc/systemd/system/consul-template.service
+  sudo mv  /tmp/consul-template.service  /etc/systemd/system/
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable consul-template
+  sudo systemctl status consul-template
+}
 
 function setup-misc() {
   # sets up docker (if needed) and a few other misc. things
@@ -371,7 +378,7 @@ function setup-misc() {
   setup-ctop
 
   # avoid death by `odcker pull` timeout nomad kills relooping and destroying i/o throughput
-  echo '{ "max-download-attempts": 1 }' >| /etc/docker/daemon.json
+  echo '{ "max-download-attempts": 1 }' >| sudo tee /etc/docker/daemon.json
 
   if [ -e /etc/ferm ]; then
     # archive.org uses `ferm` for port firewalling.
