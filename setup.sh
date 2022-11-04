@@ -2,15 +2,12 @@
 
 # One time setup of server(s) to make a nomad cluster.
 
-# xxx make it so can skip passing in certs and use caddy to mint certs for nomad TLS (expire in 90d!)
 # xxx https://caddy.community/t/how-to-use-hsts-for-proxied-http-server/5301
 # xxx (fabio) get client IP sent to containers     "-proxy.header.clientip", "X-Forwarded-For",
 # xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2  tcp:8200  tcp:7777
 # xxx http:8989     http://ain.mydomain.ru { reverse_proxy ain-frontend:80 }}
-
-# HO=$(hostname -f);
-# LE=/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/
-# setup.sh   $LE/$HO/$HO.crt  $LE/$HO/$HO.key   $HO    # xxx
+# xxx make caddy + nomad group that can read certs and chgrp and symlink??
+# xxx do 2+ ip addresses for hostname screw up auto-LE?
 
 
 
@@ -24,13 +21,19 @@ REPO=https://gitlab.com/internetarchive/nomad/-/raw/master
 function usage() {
   echo "
 ----------------------------------------------------------------------------------------------------
-Usage: $MYSELF  [TLS_CRT file]  [TLS_KEY file]  <node 1>  <node 2>  ..
+Usage: $MYSELF  [TLS_CRT file OR -]  [TLS_KEY file OR -]  <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
+You can pass in '-' for TLS_CRT and TLS_KEY arguments -- and we'll use lets encrypt generated certs
+BUT NOTE: they will expire in 90 days and you may need to re-copy the certs and restart nomad.
+
+Make your first node be a FULLY-QUALIFIED DOMAIN NAME
+  (and the one you'd like to use in urls if your machine has multiple names)
+
 [TLS_CRT file] - cert file location, PEM format.  eg: .../archive.org-cert.pem
 [TLS_KEY file] - key  file location, PEM format.  eg: .../archive.org-key.pem
     File locations can be local to each VM
-    or in `rsync` format where you prepend '[SERVER]:' in the filename
+    or in \`rsync\` format where you prepend '[SERVER]:' in the filename
     We use to setup ACL and TLS for nomad.
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
@@ -52,7 +55,7 @@ Overview:
 
 ----------------------------------------------------------------------------------------------------
 NOTE: if setup 3 nodes (h0, h1 & h2) on day 1; and want to add 2 more (h3 & h4) later,
-you should manually change 2 lines in `setup-env-vars()` in script -- look for INITIAL_CLUSTER_SIZE
+you should manually change 2 lines in \`setup-env-vars()\` in script -- look for INITIAL_CLUSTER_SIZE
 
 "
   exit 1
@@ -66,32 +69,29 @@ function main() {
     set -x
 
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
-    # Run "setup-consul-and-certs" across all VMs.
+    # Run setups across all VMs.
     # https://learn.hashicorp.com/tutorials/nomad/clustering#use-consul-to-automatically-cluster-nodes
     for NODE in ${NODES?}; do
       # copy ourself / this script & env file over to the node first, then run script
       cat /tmp/setup.env | ssh $NODE 'tee /tmp/setup.env >/dev/null'
       cat ${MYSELF}      | ssh $NODE 'tee /tmp/setup.sh  >/dev/null  &&  chmod +x /tmp/setup.sh'
-      ssh $NODE  /tmp/setup.sh  setup-consul-and-certs
+
+      ssh $NODE  /tmp/setup.sh  setup-caddy-and-certs-xxx
     done
 
 
     # Now get nomad configured and up - run "setup-nomad" on all VMs.
     for NODE in ${NODES?}; do
       ssh $NODE  /tmp/setup.sh  setup-nomad
-      ssh $NODE  /tmp/setup.sh  setup-caddy
     done
 
     finish
 
-  elif [ "$1" = "setup-consul-and-certs" ]; then
-    setup-consul-and-certs
+  elif [ "$1" = "setup-caddy-and-certs-xxx" ]; then
+    setup-caddy-and-certs-xxx
 
   elif [ "$1" = "setup-nomad" ]; then
     setup-nomad
-
-  elif [ "$1" = "setup-caddy" ]; then
-    setup-caddy
 
   else
     usage "$@"
@@ -123,19 +123,19 @@ function setup-env-vars() {
   # Also manually set FIRST here to hostname of your existing cluster first VM.
   local INITIAL_CLUSTER_SIZE=0
   FIRST=$NODES[1]
-
-  FIRST_FQDN=$(ssh $FIRST hostname -f)
+  FIRST_FQDN=$NODES[1]
 
   # write all our needed environment variables to a file
   (
     # logical constants
     echo export CONSUL_ADDR="http://localhost:8500"
+    echo export LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
 
     # Let's put caddy and consul on all servers
     echo export CADDY_COUNT=${CLUSTER_SIZE?}
     echo export CONSUL_COUNT=${CLUSTER_SIZE?}
 
-    echo export NOMAD_ADDR="https://${FIRST_FQDN?}:4646"
+    echo export NOMAD_ADDR="https://${FIRST_FQDN?}"
 
     echo export FIRST=$FIRST
     echo export FIRST_FQDN=$FIRST_FQDN
@@ -176,29 +176,34 @@ function load-env-vars() {
     [ -z "$COUNT" ]  ||  break
   done
 
+  # the FIRST host *might* not be same as $(hostname) -- in that case we are 0
+  [ -z "$COUNT" ]  &&  export COUNT=0
+
   set -x
 }
 
 
-function setup-consul-and-certs() {
+function setup-consul-and-misc() {
   load-env-vars
 
   cd /tmp
 
   setup-misc
   setup-PV
-  setup-certs
   setup-consul
   setup-404-page
 }
 
 
-function setup-consul() {
-  # sets up consul
+function setup-hashicorp() {
   curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
   ARCH=$(dpkg --print-architecture)
   sudo apt-add-repository "deb [arch=$ARCH] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
   sudo apt-get -yqq update
+}
+
+function setup-consul() {
+  # sets up consul
 
   # install binaries and service files
   #   eg: /usr/bin/consul  /etc/consul.d/consul.hcl  /usr/lib/systemd/system/consul.service
@@ -342,22 +347,39 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 }
 
 
-function setup-caddy() {
+function setup-caddy-and-certs-xxx() {
+  load-env-vars
+
+  setup-hashicorp
+
+  setup-consul-and-misc
+
   sudo apt-get -yqq install  consul-template
 
   # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
-  sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
-    |sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  sudo apt install -yqq debian-keyring debian-archive-keyring apt-transport-https
+  [ -e /usr/share/keyrings/caddy-stable-archive-keyring.gpg ] ||
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+      |sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
     |sudo tee /etc/apt/sources.list.d/caddy-stable.list
   sudo apt-get -yqq update
   sudo apt-get -yqq install caddy
+  sudo mkdir -p    /var/lib/caddy
+  sudo chown caddy /var/lib/caddy
 
   getr     etc/caddy/Caddyfile.ctmpl
   sudo mv /tmp/Caddyfile.ctmpl /etc/caddy/
 
-  echo HOSTNAME=$(hostname -f) |sudo tee /etc/caddy/env
+  echo '
+:80 {
+  root * /usr/share/caddy
+  file_server
+}' |sudo tee /etc/caddy/Caddyfile.static
+
+
+  echo HOSTNAME=$FIRST_FQDN |sudo tee /etc/caddy/env
+
 
   getr etc/systemd/system/consul-template.service
   sudo mv  /tmp/consul-template.service  /etc/systemd/system/
@@ -365,6 +387,8 @@ function setup-caddy() {
   sudo systemctl daemon-reload
   sudo systemctl enable consul-template
   sudo systemctl status consul-template
+
+  setup-certs
 }
 
 function setup-misc() {
@@ -415,13 +439,29 @@ function setup-misc() {
 
 
 function setup-certs() {
+  if [ "$TLS_CRT" = "-" ]; then
+    # wait for lets encrypt certs
+    [ "$TLS_CRT" = "-" ] && TLS_CRT=$LETSENCRYPT_DIR/$FIRST_FQDN/$FIRST_FQDN.crt
+    [ "$TLS_KEY" = "-" ] && TLS_KEY=$LETSENCRYPT_DIR/$FIRST_FQDN/$FIRST_FQDN.key
+
+    wget -q --server-response http://$FIRST_FQDN
+
+    while true; do
+      ( sudo cat $TLS_KEY |egrep . ) && break
+      echo "waiting for $FIRST_FQDN certs"
+      sleep 1
+    done
+    sleep 2
+  fi
+
+
   # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely
   sudo mkdir -m 500 -p        /opt/nomad/tls
   sudo chmod -R go-rwx        /opt/nomad/tls
   sudo rsync -Pav ${TLS_CRT?} /opt/nomad/tls/tls.crt
   sudo rsync -Pav ${TLS_KEY?} /opt/nomad/tls/tls.key
-  sudo chmod 444 /opt/nomad/tls/tls.crt
-  sudo chmod 400 /opt/nomad/tls/tls.key
+  sudo chmod 444              /opt/nomad/tls/tls.crt
+  sudo chmod 400              /opt/nomad/tls/tls.key
 }
 
 

@@ -23,21 +23,22 @@ umount $(df -h |fgrep /var/lib/nomad |rev |cut -f1 -d' ' |rev)  ||  echo 'seems 
 
 
 set +e
-for i in  nomad  consul  docker  caddy  docker-ce; do
+for i in  nomad  consul  caddy  consul-template; do
   service $i stop
   apt-get -yqq purge $i
   systemctl disable $i.service
   systemctl reset-failed
-  systemctl daemon-reload
 
   find  /opt/$i  /etc/$i  /etc/$i.d  /var/lib/$i  -delete
 
   killall $i
 done
 
-rm -fv /etc/ferm/*/nomad.conf  /etc/dnsmasq.d/nomad  /etc/caddy/Caddyfile* /etc/caddy/env
+systemctl daemon-reload
 
-rm -fv /tmp/setup.env  /tmp/setup.sh  xxx
+rm -fv /etc/ferm/*/nomad.conf  /etc/dnsmasq.d/nomad
+
+rm -fv /tmp/setup.env  /tmp/setup.sh
 
 service ferm reload
 
