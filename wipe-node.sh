@@ -35,7 +35,7 @@ for i in  nomad  consul  docker  caddy  docker-ce; do
   killall $i
 done
 
-rm -fv /etc/ferm/*/nomad.conf  /etc/dnsmasq.d/nomad  /etc/Caddyfile*
+rm -fv /etc/ferm/*/nomad.conf  /etc/dnsmasq.d/nomad  /etc/caddy/Caddyfile* /etc/caddy/env
 
 rm -fv /tmp/setup.env  /tmp/setup.sh  xxx
 
