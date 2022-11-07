@@ -419,6 +419,7 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 - https://weekly-geekly.github.io/articles/453322/index.html
 - https://www.haproxy.com/blog/haproxy-and-consul-with-dns-for-service-discovery/
 - https://www.youtube.com/watch?v=gf43TcWjBrE  Kelsey Hightower, HashiConf 2016
+- https://blog.tjll.net/reverse-proxy-hot-dog-eating-contest-caddy-vs-nginx/#results
 
 ## Pick your container stack / testimonials
 - https://www.hashicorp.com/blog/hashicorp-joins-the-cncf/
@@ -437,6 +438,12 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 
 # Miscellaneous
 - client IP addresses will be in request header 'X-Forwarded-For' (per `caddy`)
+- get list of `consul` services:
+```
+wget -qO- 'localhost:8500/v1/catalog/services?tags=1' | jq .
+```
+
+
 # Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
 
