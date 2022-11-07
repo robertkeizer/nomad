@@ -3,12 +3,105 @@
 # One time setup of server(s) to make a nomad cluster.
 
 # xxx https://caddy.community/t/how-to-use-hsts-for-proxied-http-server/5301
-# xxx (fabio) get client IP sent to containers     "-proxy.header.clientip", "X-Forwarded-For",
-# xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2  tcp:8200  tcp:7777
-# xxx http:8989     http://ain.mydomain.ru { reverse_proxy ain-frontend:80 }}
-# xxx make caddy + nomad group that can read certs and chgrp and symlink??
-# xxx do 2+ ip addresses for hostname screw up auto-LE?
+#    header Strict-Transport-Security max-age=31536000;
+#
+# xxx 2+ ip addresses for hostname to caddy LB https://caddy.community/t/caddy-as-clustered-load-balancer-hows-that-gonna-work/12510
+#    could share certs dir over NFS or use Caddy API
 
+
+echo '
+
+# xxx wss dweb "in v2, you do not need to do anything to enable websockets."
+dweb-webtorrent/.gitlab-ci.yml:  NOMAD_VAR_PORTS: { 7777 = "http", 6969 = "webtorrenttracker", 6881 = "webtorrentseeder" }
+wss://wt.archive.org:6969
+
+
+https://gitlab.com/internetarchive/nomad/-/blob/fabio/etc/fabio.properties
+xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2
+8989 http only (lcp)
+7777 tcp (scribe-c2)(irc)
+(8200 tcp (testing only))
+
+  "www-dweb": [
+    "urlprefix-gateway.dweb.me",
+    "urlprefix-dweb.me",
+    "urlprefix-dweb.archive.org",
+  ],
+  "www-dweb-WOLK": [
+    "urlprefix-dweb.archive.org:99/"
+  ],
+
+
+  "www-dwebcamp2022": [
+    "urlprefix-www.dwebcamp.org",
+    "urlprefix-dwebcamp.org",
+    "urlprefix-www-dwebcamp2022.dev.archive.org",
+    "urlprefix-dwebcamp.dev.archive.org",
+  ],
+  "www-dwebcamp2022-db": [
+    "urlprefix-dwebcamp.org:5432/"
+  ],
+
+
+  "services-scribe-loki": [
+    "urlprefix-services-scribe-loki.books-loki.archive.org",
+  ],
+  "services-scribe-loki-grafana": [
+    "urlprefix-services-scribe-loki.books-loki.archive.org:3000/"
+  ],
+  "services-scribe-loki-prometheus": [
+    "urlprefix-services-scribe-loki.books-loki.archive.org:9090/"
+  ]
+' > /dev/null
+
+echo '
+# TYPICAL
+moo.code.archive.org {
+	reverse_proxy 207.241.234.143:25496 {
+		lb_policy least_conn
+	}
+}
+
+# HTTPS alt port xxx
+a.code.archive.org:8012 {
+	reverse_proxy 207.241.234.143:25496 {
+		lb_policy least_conn
+        }
+}
+
+# HTTP alt port xxx
+http://a.code.archive.org:8990 {
+	reverse_proxy 207.241.234.143:25496 {
+		lb_policy least_conn
+        }
+}
+
+# HTTP (only) xxx
+moo.code.archive.org:80 {
+	reverse_proxy 207.241.234.143:25496 {
+		lb_policy least_conn
+	}
+}
+
+# xxx attempts for http:// work; not for https:// - custom page at /404.html
+# https://caddy.community/t/default-page-on-domain-not-found/3155/3
+:80 {
+        error 404
+         handle_errors {
+                rewrite * /{err.status_code}.html
+                file_server
+        }
+}
+:443 {
+        error 404
+         handle_errors {
+                rewrite * /{err.status_code}.html
+                file_server
+        }
+}
+
+
+' > /dev/null
 
 
 MYDIR=${0:a:h}
@@ -77,7 +170,7 @@ function main() {
       cat /tmp/setup.env | ssh $NODE 'tee /tmp/setup.env >/dev/null'
       cat ${MYSELF}      | ssh $NODE 'tee /tmp/setup.sh  >/dev/null  &&  chmod +x /tmp/setup.sh'
 
-      ssh $NODE  /tmp/setup.sh  setup-caddy-and-certs-xxx
+      ssh $NODE  /tmp/setup.sh  setup-consul-caddy-certs-misc
     done
 
 
@@ -88,8 +181,8 @@ function main() {
 
     finish
 
-  elif [ "$1" = "setup-caddy-and-certs-xxx" ]; then
-    setup-caddy-and-certs-xxx
+  elif [ "$1" = "setup-consul-caddy-certs-misc" ]; then
+    setup-consul-caddy-certs-misc
 
   elif [ "$1" = "setup-nomad" ]; then
     setup-nomad
@@ -348,7 +441,7 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 }
 
 
-function setup-caddy-and-certs-xxx() {
+function setup-consul-caddy-certs-misc() {
   load-env-vars
 
   setup-hashicorp
