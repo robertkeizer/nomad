@@ -442,6 +442,10 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 ```
 wget -qO- 'localhost:8500/v1/catalog/services?tags=1' | jq .
 ```
+- get `caddy` config:
+```
+wget -qO- localhost:2019/config/ | jq .
+```
 
 
 # Issues / next steps

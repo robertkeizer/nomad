@@ -10,17 +10,25 @@
 
 
 echo '
-
 # xxx wss dweb "in v2, you do not need to do anything to enable websockets."
 dweb-webtorrent/.gitlab-ci.yml:  NOMAD_VAR_PORTS: { 7777 = "http", 6969 = "webtorrenttracker", 6881 = "webtorrentseeder" }
 wss://wt.archive.org:6969
 
+scribe-c2/.gitlab-ci.yml:  NOMAD_VAR_PORTS: { 9999 = "http" , -7777 = "tcp", 8889 = "reg" }
+
 
 https://gitlab.com/internetarchive/nomad/-/blob/fabio/etc/fabio.properties
-xxx https://caddy.community/t/reverse-proxy-any-tcp-connection-for-database-connections/12732/2
 8989 http only (lcp)
-7777 tcp (scribe-c2)(irc)
+7777 tcp (scribe-c2)(irc) (see `tcp` subdir)
 (8200 tcp (testing only))
+
+  "services-scribe-c2": [
+    "urlprefix-services-scribe-c2.dev.archive.org"
+  ],
+  "services-scribe-c2-tcp": [
+    "urlprefix-:7777 proto=tcp"
+  ],
+
 
   "www-dweb": [
     "urlprefix-gateway.dweb.me",
@@ -66,14 +74,14 @@ moo.code.archive.org {
 a.code.archive.org:8012 {
 	reverse_proxy 207.241.234.143:25496 {
 		lb_policy least_conn
-        }
+	}
 }
 
 # HTTP alt port xxx
 http://a.code.archive.org:8990 {
 	reverse_proxy 207.241.234.143:25496 {
 		lb_policy least_conn
-        }
+	}
 }
 
 # HTTP (only) xxx
@@ -87,14 +95,16 @@ moo.code.archive.org:80 {
 # https://caddy.community/t/default-page-on-domain-not-found/3155/3
 :80 {
         error 404
-         handle_errors {
+        error 500
+        handle_errors {
                 rewrite * /{err.status_code}.html
                 file_server
         }
 }
 :443 {
         error 404
-         handle_errors {
+        error 500
+        handle_errors {
                 rewrite * /{err.status_code}.html
                 file_server
         }

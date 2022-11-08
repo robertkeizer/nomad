@@ -1,0 +1,30 @@
+{
+  "apps": {
+    "layer4": {
+      "servers": {
+        "example": {
+          "listen": [
+            "a.code.archive.org:6969"
+          ],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "proxy",
+                  "proxy_protocol": "v2",
+                  "upstreams": [
+                    {
+                      "dial": [
+                        "localhost:32123"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
