@@ -49,7 +49,15 @@
 {{ range services -}}
 
 	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
-		{{ if  .Tags | join "," | regexMatch "urlprefix-[^:]+:(80|443)" }}
+		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
+
+			,{ "match": [{
+				"host": [
+					"xxx{{.Address}}:{{.Port}}"
+				]
+			}]}
+
+		{{ else if  .Tags | join "," | regexMatch "urlprefix-[^:]+:(80|443)" }}
 			{{/*handling http & https routes first -- here omit port from incoming source rule to Caddy*/}}
 			{{/*(we still specify (usually) the randomized dest high port that the service container listens on)*/}}
 
@@ -93,13 +101,48 @@
 
 
 		{{ else }}
-			{{ "for (rare) non-'web' port exposed all way to browser (eg: extra tcp or http ports for multiple daemons) xxxxxxx" }}
-			{{ "we want to leave the port number in" }}
-			{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" }} {
-				reverse_proxy {{- range service .Name }} {{ .Address }}:{{.Port}} {{- end }} {
-					lb_policy least_conn
+			{{/*for (rare) non-'web' port exposed all way to browser (eg: extra tcp or http ports for multiple daemons)*/}}
+			{{/*we want to leave the port number in*/}}
+
+
+				,{
+					"match": [
+						{
+							"host": [
+								"{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" }}"
+							]
+						}
+					],
+					"handle": [
+						{
+							"handler": "subroute",
+							"routes": [
+								{
+									"handle": [
+										{
+											"handler": "reverse_proxy",
+											"load_balancing": {
+												"selection_policy": {
+													"policy": "least_conn"
+												}
+											},
+											"upstreams": [
+												{{ range service .Name }}
+													{
+														"dial": "{{.Address}}:{{.Port}}"
+													}
+												{{ end }}
+											]
+										}
+									]
+								}
+							]
+						}
+					],
+					"terminal": true
 				}
-			}
+
+
 		{{ end }}
 	{{ end }}
 
