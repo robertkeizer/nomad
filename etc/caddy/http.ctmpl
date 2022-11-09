@@ -1,0 +1,42 @@
+# start off with nice, easy way to get to nomad
+
+{{ env "HOSTNAME" }} {
+	reverse_proxy https://{{ env "HOSTNAME" }}:4646
+}
+
+{{ range services }}
+	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
+		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
+
+			# (rare) TCP only ports need to be ignored here -- @see tcp.ctmpl for how they get setup
+
+		{{ else if .Name | regexMatch "www-dweb-mirror" }}
+
+			# xxx ffs 2nd *already deregistered* service stuck here (it moved to GH internetarchive)
+
+		{{ else }}
+
+			{{ if  .Tags | join "," | regexMatch "urlprefix-[^:]+:(80|443)[^0-9]" }}
+
+				# Handle http & https routes first -- here we omit port from incoming source rule to Caddy.
+				# We still specify dest (usually high randomized) port that the service container listens on.
+
+				{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll ":.*" "" }} {
+					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
+						lb_policy least_conn
+					}
+				}
+			{{ else }}
+
+				# For (rare) non-"web" port exposed all way to a browser, we leave the port number in.
+				# (eg: extra http ports for multiple daemons)
+
+				{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" }} {
+					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
+						lb_policy least_conn
+					}
+				}
+			{{ end }}
+		{{ end }}
+	{{ end }}
+{{ end }}

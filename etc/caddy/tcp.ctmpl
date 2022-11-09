@@ -1,0 +1,53 @@
+{
+  "apps": {
+    "layer4": {
+      "servers": {
+
+
+
+{{ range services }}
+	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
+		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
+
+
+        "example-xxx-make-variable": {
+          "listen": [
+            "{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" | regexReplaceAll " proto=tcp" "" }}"
+          ],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "proxy",
+                  "proxy_protocol": "v2",
+                  "upstreams": [
+                    {
+                      "dial": [
+                        {{ $first := true }}
+                        {{ range service .Name }}
+                            {{ if $first }}
+                                {{ $first = false }}
+                            {{ else }}
+                                ,
+                            {{ end }}
+                            "{{ .Address }}:{{.Port}}"
+                        {{ end }}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+
+
+		{{ end }}
+	{{ end }}
+{{ end }}
+
+
+      }
+    }
+  }
+}
