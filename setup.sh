@@ -472,8 +472,10 @@ function setup-consul-caddy-certs-misc() {
   sudo mkdir -p    /var/lib/caddy
   sudo chown caddy /var/lib/caddy
 
-  getr     etc/caddy/Caddyfile.ctmpl
-  sudo mv /tmp/Caddyfile.ctmpl /etc/caddy/
+  getr     etc/caddy/http.ctmpl
+  getr     etc/caddy/tcp.ctmpl
+  sudo mv /tmp/http.ctmpl /etc/caddy/
+  sudo mv /tmp/tcp.ctmpl  /etc/caddy/
 
   echo '
 :80 {
