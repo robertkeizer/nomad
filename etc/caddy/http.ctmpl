@@ -31,7 +31,9 @@
 				# For (rare) non-"web" port exposed all way to a browser, we leave the port number in.
 				# (eg: extra http ports for multiple daemons)
 
-				{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" }} {
+				{{ if .Tags | join "," | regexMatch "proto=http" }}{{"http://"}}{{
+					end
+				}}{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll " proto=http" "" | regexReplaceAll "/$" "" }} {
 					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
 						lb_policy least_conn
 					}
