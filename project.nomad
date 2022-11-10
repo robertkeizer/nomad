@@ -99,12 +99,16 @@ variable "PORTS" {
   #       Don't worry -- we'll use the abs() of it;
   #       negative numbers makes them easily identifiable and partition-able below ;-)
   #
+  # Note: if you want an extra port to only use HTTP and not HTTPS, add 10000 to your desired
+  #       port number (so for 18989, the public url will be http://...:8989 ).
+  #
   # Examples:
   #   NOMAD_VAR_PORTS='{ 5000 = "http" }'
   #   NOMAD_VAR_PORTS='{ -1 = "http" }'
   #   NOMAD_VAR_PORTS='{ 5000 = "http", 666 = "cool-ness" }'
   #   NOMAD_VAR_PORTS='{ 8888 = "http", 8012 = "backend", 7777 = "extra-service" }'
   #   NOMAD_VAR_PORTS='{ 5000 = "http", -7777 = "irc" }'
+  #   NOMAD_VAR_PORTS='{ 5000 = "http", 18989 = "db" }'
   type = map(string)
   default = { 5000 = "http" }
 }
@@ -137,17 +141,19 @@ locals {
 
   # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000).
   # Then split hashmap in two: one for HTTP port mappings; one for TCP (only; rare) port mappings.
-  ports_main       = {for k, v in var.PORTS:                 k  => v  if v == "http"}
-  ports_extra_tmp  = {for k, v in var.PORTS:                 k  => v  if v != "http"}
-  ports_extra_http = {for k, v in local.ports_extra_tmp:     k  => v  if k > -2}
-  ports_extra_tcp  = {for k, v in local.ports_extra_tmp: abs(k) => v  if k < -1}
+  ports_main        = {for k, v in var.PORTS:                 k          => v  if v == "http"}
+  ports_extra_tmp   = {for k, v in var.PORTS:                 k          => v  if v != "http"}
+  ports_extra_tmp2  = {for k, v in local.ports_extra_tmp:     k          => v  if k > -2}
+  ports_extra_https = {for k, v in local.ports_extra_tmp2:    k          => v  if k < 10000}
+  ports_extra_http  = {for k, v in local.ports_extra_tmp: abs(k - 10000) => v  if k > 10000}
+  ports_extra_tcp   = {for k, v in local.ports_extra_tmp: abs(k)         => v  if k < -1}
   # 1st docker container configures all ports *unless* MULTI_CONTAINER is true, then just main port
   ports_docker = values(merge(
     {for k, v in var.PORTS        : k => v if !var.MULTI_CONTAINER},
     {for k, v in local.ports_main : k => v if  var.MULTI_CONTAINER}))
 
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
-  ports_all = merge(local.ports_main, local.ports_extra_http, local.ports_extra_tcp, {})
+  ports_all = merge(local.ports_main, local.ports_extra_https, local.ports_extra_http, local.ports_extra_tcp, {})
 
   # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
   docker_image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
@@ -260,13 +266,36 @@ job "NOMAD_VAR_SLUG" {
       }
 
       dynamic "service" {
-        for_each = local.ports_extra_http
+        for_each = local.ports_extra_https
         content {
           # service.key == portnumber
           # service.value == portname
           name = "${var.SLUG}-${service.value}"
           task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.MULTI_CONTAINER]))
           tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
+          port = "${service.value}"
+          check {
+            name     = "alive"
+            type     = "${var.CHECK_PROTOCOL}"
+            path     = "${var.CHECK_PATH}"
+            port     = "http"
+            interval = "10s"
+            timeout  = "2s"
+          }
+          check_restart {
+            grace = "${var.HEALTH_TIMEOUT}"
+          }
+        }
+      }
+      dynamic "service" {
+        # NOTE: this is like local.ports_extra_https block above, except for "proto=http"
+        for_each = local.ports_extra_http
+        content {
+          # service.key == portnumber
+          # service.value == portname
+          name = "${var.SLUG}-${service.value}"
+          task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.MULTI_CONTAINER]))
+          tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/ proto=http"]
           port = "${service.value}"
           check {
             name     = "alive"
