@@ -1,7 +1,23 @@
+{
+	on_demand_tls {
+		# ask /
+		interval 1m
+		burst 10
+	}
+}
+
+# unknown hostnames go to IA 404 page
+http:// {
+	redir https://archive.org/about/404.html
+}
+
 # start off with nice, easy way to get to nomad
 
 {{ env "HOSTNAME" }} {
 	reverse_proxy https://{{ env "HOSTNAME" }}:4646
+	tls {
+		on_demand
+	}
 }
 
 {{ range services }}
@@ -25,6 +41,9 @@
 					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
 						lb_policy least_conn
 					}
+					tls {
+						on_demand
+					}
 				}
 			{{ else }}
 
@@ -36,6 +55,9 @@
 				}}{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll " proto=http" "" | regexReplaceAll "/$" "" }} {
 					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
 						lb_policy least_conn
+					}
+					tls {
+						on_demand
 					}
 				}
 			{{ end }}

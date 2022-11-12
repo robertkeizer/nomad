@@ -27,3 +27,12 @@ cat tmp.json | jq . >| tcp.json
 
 
 jq -s '.[0] * .[1]' tcp.json http.json >| Caddyfile.json
+
+
+# xxx temporary changes for testing on testing cluster-of-1
+sudo perl -i \
+  -pe 's/"([^\.]+)\.archive\.org"/"$1.code.archive.org"/;' \
+  -pe 's/"([^\.]+)\.dev\.archive\.org"/"$1.code.archive.org"/;' \
+  Caddyfile.json
+
+wgeto services-scribe-c2.code.archive.org:7777; # xxx
