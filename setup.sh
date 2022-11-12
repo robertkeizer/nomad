@@ -91,26 +91,6 @@ moo.code.archive.org:80 {
 	}
 }
 
-# xxx attempts for http:// work; not for https:// - custom page at /404.html
-# https://caddy.community/t/default-page-on-domain-not-found/3155/3
-:80 {
-        error 404
-        error 500
-        handle_errors {
-                rewrite * /{err.status_code}.html
-                file_server
-        }
-}
-:443 {
-        error 404
-        error 500
-        handle_errors {
-                rewrite * /{err.status_code}.html
-                file_server
-        }
-}
-
-
 ' > /dev/null
 
 
@@ -295,7 +275,6 @@ function setup-consul-and-misc() {
   setup-misc
   setup-PV
   setup-consul
-  setup-404-page
 }
 
 
@@ -589,15 +568,6 @@ function setup-ctop() {
   wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
   sudo apt-get -yqq update
   sudo apt-get install -yqq docker-ctop
-}
-
-
-function setup-404-page() {
-  # sets up a "hostname not found" custom 404 page for fabio/LB to emit xxx
-  if [[ "${FIRST_FQDN?}" == *archive.org* ]]; then
-    getr etc/archive.org/404.min.html
-    consul kv put 'fabio/noroute.html' "$(cat /tmp/404.min.html)"
-  fi
 }
 
 

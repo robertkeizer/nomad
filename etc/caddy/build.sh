@@ -35,4 +35,4 @@ sudo perl -i \
   -pe 's/"([^\.]+)\.dev\.archive\.org"/"$1.code.archive.org"/;' \
   Caddyfile.json
 
-wgeto services-scribe-c2.code.archive.org:7777; # xxx
+function xxx() { wgeto services-scribe-c2.code.archive.org:7777; } # xxx
