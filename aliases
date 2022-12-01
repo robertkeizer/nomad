@@ -132,6 +132,7 @@ function nom-cp() {
   fi
 
   cat "$FILE" | ( set -x; nomad alloc exec -i -task $TASK "$ALLOC" sh -c "cat >| '$REST'" )
+  echo SUCCESS
 }
 
 
