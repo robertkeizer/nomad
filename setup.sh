@@ -364,6 +364,7 @@ function setup-nomad {
 
   # now that this user and group exist, lock certs dir down
   sudo chown -R nomad.nomad /opt/nomad/tls
+  sudo adduser nomad nomaddy
 
 
   # setup the fields 'encrypt' etc. as per your cluster.
@@ -453,8 +454,16 @@ function setup-consul-caddy-certs-misc() {
 
   getr     etc/caddy/http.ctmpl
   getr     etc/caddy/tcp.ctmpl
-  sudo mv /tmp/http.ctmpl /etc/caddy/
-  sudo mv /tmp/tcp.ctmpl  /etc/caddy/
+  getr     etc/caddy/Caddyfile.ctmpl
+  getr     etc/caddy/build.sh
+  (
+    cd /tmp
+    sudo mv
+      http.ctmpl \
+      tcp.ctmpl \
+      Caddyfile.ctmpl \
+      build.sh \
+      /etc/caddy/
 
   echo '
 :80 {
@@ -524,6 +533,10 @@ function setup-misc() {
 
 
 function setup-certs() {
+  # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely
+  sudo mkdir -m 500 -p        /opt/nomad/tls
+  sudo chmod -R go-rwx        /opt/nomad/tls
+
   if [ "$TLS_CRT" = "-" ]; then
     # wait for lets encrypt certs
     [ "$TLS_CRT" = "-" ] && TLS_CRT=$LETSENCRYPT_DIR/$FIRST_FQDN/$FIRST_FQDN.crt
@@ -537,16 +550,16 @@ function setup-certs() {
       sleep 1
     done
     sleep 2
+
+    # make caddy + nomad group that can both read certs -- so we can symlink
+    sudo addgroup nomaddy
+    sudo adduser caddy nomaddy
+  else
+    sudo rsync -Pav ${TLS_CRT?} /opt/nomad/tls/tls.crt
+    sudo rsync -Pav ${TLS_KEY?} /opt/nomad/tls/tls.key
+    sudo chmod 444              /opt/nomad/tls/tls.crt
+    sudo chmod 400              /opt/nomad/tls/tls.key
   fi
-
-
-  # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely
-  sudo mkdir -m 500 -p        /opt/nomad/tls
-  sudo chmod -R go-rwx        /opt/nomad/tls
-  sudo rsync -Pav ${TLS_CRT?} /opt/nomad/tls/tls.crt
-  sudo rsync -Pav ${TLS_KEY?} /opt/nomad/tls/tls.key
-  sudo chmod 444              /opt/nomad/tls/tls.crt
-  sudo chmod 400              /opt/nomad/tls/tls.key
 }
 
 

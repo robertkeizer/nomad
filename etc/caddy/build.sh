@@ -6,6 +6,7 @@ export HOSTNAME=${HOSTNAME?}
 
 # wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 
+# xxxx ssh kube-a-03 'cat /etc/caddy/Caddyfile.json' |sudo tee /etc/caddy/Caddyfile.json >/dev/null; sudo ~tracey/scripts/caddy-with-tcp run --environ --config /etc/caddy/Caddyfile.json
 
 # xxx http.ctmpl needs to handle http only ports
 
@@ -25,14 +26,10 @@ cat tmp.json | jq . >| tcp.json
 
 
 
-
 jq -s '.[0] * .[1]' tcp.json http.json >| Caddyfile.json
 
 
-# xxx temporary changes for testing on testing cluster-of-1
-sudo perl -i \
-  -pe 's/"([^\.]+)\.archive\.org"/"$1.code.archive.org"/;' \
-  -pe 's/"([^\.]+)\.dev\.archive\.org"/"$1.code.archive.org"/;' \
-  Caddyfile.json
+/usr/bin/caddy reload
+
 
 function xxx() { wgeto services-scribe-c2.code.archive.org:7777; } # xxx

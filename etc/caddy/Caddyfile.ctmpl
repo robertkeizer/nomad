@@ -1,0 +1,15 @@
+# start off with nice, easy way to get to nomad
+
+{{ env "HOSTNAME" }} {
+	reverse_proxy localhost:4646
+}
+
+{{ range services -}}
+{{ if  .Tags | join "," | regexMatch "urlprefix.*" }}
+{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll ":.*" "" }} {
+	reverse_proxy {{- range service .Name }} {{ .Address }}:{{.Port}} {{- end }} {
+		lb_policy least_conn
+	}
+}
+{{- end }}
+{{ end -}}
