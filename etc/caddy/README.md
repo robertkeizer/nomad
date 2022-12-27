@@ -6,8 +6,4 @@ https://github.com/mholt/caddy-l4
 [tcp.json](tcp.json) -- verify by running [echo.js](echo.js)
 
 
-```sh
-sudo ~tracey/scripts/caddy run --config merged.json
-```
-
 xxx verify: alt ports via http and https; http only; tcp
