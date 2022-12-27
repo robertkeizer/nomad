@@ -438,7 +438,7 @@ function setup-consul-caddy-certs-misc() {
 
   setup-consul-and-misc
 
-  sudo apt-get -yqq install  consul-template
+  sudo apt-get -yqq install  consul-template  jq
 
   # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
   sudo apt install -yqq debian-keyring debian-archive-keyring apt-transport-https

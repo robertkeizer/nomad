@@ -1,5 +1,10 @@
 #!/bin/zsh -ex
 
+# archive.org review app cluster seems to "flap" a lot w/ spurious `consul` "updates".
+# So avoid too many processing loops and reloads too often
+trap "{ sleep 25 }" EXIT
+
+
 source /etc/caddy/env
 
 export HOSTNAME=${HOSTNAME?}
@@ -32,3 +37,6 @@ jq -s '.[0] * .[1]' tcp.json http.json >| Caddyfile.json
 
 
 /usr/bin/caddy-plus-tcp reload --config /etc/caddy/Caddyfile.json --force
+
+
+echo SUCCESS
