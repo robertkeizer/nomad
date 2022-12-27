@@ -3,13 +3,14 @@
 source /etc/caddy/env
 
 export HOSTNAME=${HOSTNAME?}
+export TCP_DOMAIN=${TCP_DOMAIN?}
 
 # wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 
 
 
 # xxx http.ctmpl needs to handle http only ports
-# xxx wgeto services-scribe-c2.code.archive.org:7777; }
+# xxx telnet services-scribe-c2.code.archive.org 7777  # TCP
 
 cd /etc/caddy
 touch tmp.cad
@@ -30,4 +31,4 @@ cat tmp.json | jq . >| tcp.json
 jq -s '.[0] * .[1]' tcp.json http.json >| Caddyfile.json
 
 
-/usr/bin/caddy-plus-tcp reload
+/usr/bin/caddy-plus-tcp reload --config /etc/caddy/Caddyfile.json --force

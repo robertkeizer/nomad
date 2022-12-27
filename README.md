@@ -420,6 +420,7 @@ CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db
 - https://www.haproxy.com/blog/haproxy-and-consul-with-dns-for-service-discovery/
 - https://www.youtube.com/watch?v=gf43TcWjBrE  Kelsey Hightower, HashiConf 2016
 - https://blog.tjll.net/reverse-proxy-hot-dog-eating-contest-caddy-vs-nginx/#results
+- https://github.com/hashicorp/consul-template/issues/200#issuecomment-76596830
 
 ## Pick your container stack / testimonials
 - https://www.hashicorp.com/blog/hashicorp-joins-the-cncf/

@@ -477,7 +477,10 @@ function setup-consul-caddy-certs-misc() {
   sudo wget -qO  /usr/bin/caddy-plus-tcp  https://archive.org/download/nginx/caddy-plus-tcp
   sudo chmod +x  /usr/bin/caddy-plus-tcp
 
-  echo HOSTNAME=$FIRST_FQDN |sudo tee /etc/caddy/env
+  (
+    echo HOSTNAME=$FIRST_FQDN
+    echo TCP_DOMAIN=dev.archive.org # xxx
+  ) |sudo tee /etc/caddy/env
 
 
   getrf etc/systemd/system/consul-template.service

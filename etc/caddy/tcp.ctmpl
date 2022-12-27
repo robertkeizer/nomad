@@ -8,9 +8,7 @@
 {{ range services }}
 	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
 		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
-
-
-        "example-xxx-make-variable": {
+        "{{ .Name }}.{{ env "TCP_DOMAIN" }}": {
           "listen": [
             "{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" | regexReplaceAll " proto=tcp" "" }}"
           ],
