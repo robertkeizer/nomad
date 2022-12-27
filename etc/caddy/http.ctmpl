@@ -20,47 +20,31 @@ http:// {
 	}
 }
 
-{{ range services }}
-	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
-		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
 
-			# (rare) TCP only ports need to be ignored here -- @see tcp.ctmpl for how they get setup
+{{ range services -}}
+  {{ range $tag, $services := service .Name|byTag -}}
+	  {{ if $tag | regexMatch "proto=tcp" -}}
+# (rare) TCP only ports need to be ignored here -- @see tcp.ctmpl for how they get setup
+    {{- else -}}
+      {{- if $tag | regexMatch "urlprefix-" -}}
+        {{- if $tag | regexMatch ":80/ redirect=308" -}}
+        {{- else -}}
+          {{- $service_name := (index $services 0).Name -}}
+          {{- $host := $tag | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/" "" | regexReplaceAll " proto=.*" "" }}
 
-		{{ else if .Name | regexMatch "www-dweb-mirror" }}
-
-			# xxx ffs 2nd *already deregistered* service stuck here (it moved to GH internetarchive)
-
-		{{ else }}
-
-			{{ if  .Tags | join "," | regexMatch "urlprefix-[^:]+:(80|443)[^0-9]" }}
-
-				# Handle http & https routes first -- here we omit port from incoming source rule to Caddy.
-				# We still specify dest (usually high randomized) port that the service container listens on.
-
-				{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll ":.*" "" }} {
-					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
-						lb_policy least_conn
-					}
-					tls {
-						on_demand
-					}
-				}
-			{{ else }}
-
-				# For (rare) non-"web" port exposed all way to a browser, we leave the port number in.
-				# (eg: extra http ports for multiple daemons)
-
-				{{ if .Tags | join "," | regexMatch "proto=http" }}{{"http://"}}{{
-					end
-				}}{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll " proto=http" "" | regexReplaceAll "/$" "" }} {
-					reverse_proxy {{ range service .Name }} {{ .Address }}:{{.Port}} {{ end }} {
-						lb_policy least_conn
-					}
-					tls {
-						on_demand
-					}
-				}
-			{{ end }}
-		{{ end }}
-	{{ end }}
-{{ end }}
+# Tag: {{ $tag }}
+# Name: {{$service_name}}
+{{if $tag | regexMatch "proto=http" -}}{{- "http://" -}}{{- end -}}
+{{- $host }} {
+  reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
+    lb_policy least_conn
+  }
+  tls {
+    on_demand
+  }
+}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end }}
