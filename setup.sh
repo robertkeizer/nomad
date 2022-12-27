@@ -377,7 +377,7 @@ function setup-nomad {
   [ $NFSHOME ]  &&  export HOME_NFS=/home
 
 
-  getr etc/nomad.hcl
+  getrf etc/nomad.hcl
   # interpolate  /tmp/nomad.hcl  to  $NOMAD_HCL
   ( echo "cat <<EOF"; cat /tmp/nomad.hcl; echo EOF ) | sh | sudo tee $NOMAD_HCL
   rm /tmp/nomad.hcl
@@ -452,18 +452,19 @@ function setup-consul-caddy-certs-misc() {
   sudo mkdir -p    /var/lib/caddy
   sudo chown caddy /var/lib/caddy
 
-  getr     etc/caddy/http.ctmpl
-  getr     etc/caddy/tcp.ctmpl
-  getr     etc/caddy/Caddyfile.ctmpl
-  getr     etc/caddy/build.sh
+  getrf     etc/caddy/http.ctmpl
+  getrf     etc/caddy/tcp.ctmpl
+  getrf     etc/caddy/Caddyfile.ctmpl
+  getr      etc/caddy/build.sh
   (
     cd /tmp
-    sudo mv
+    sudo mv \
       http.ctmpl \
       tcp.ctmpl \
       Caddyfile.ctmpl \
       build.sh \
       /etc/caddy/
+  )
 
   echo '
 :80 {
@@ -472,11 +473,22 @@ function setup-consul-caddy-certs-misc() {
 }' |sudo tee /etc/caddy/Caddyfile.static
 
 
+  # get a compiled `caddy` binary that has plugin with additional raw TCP ability built-in
+  sudo wget -qO  /usr/bin/caddy-plus-tcp  https://archive.org/download/nginx/caddy-plus-tcp
+  sudo chmod +x  /usr/bin/caddy-plus-tcp
+
   echo HOSTNAME=$FIRST_FQDN |sudo tee /etc/caddy/env
 
 
-  getr etc/systemd/system/consul-template.service
+  getrf etc/systemd/system/consul-template.service
   sudo mv  /tmp/consul-template.service  /etc/systemd/system/
+
+
+  sudo perl -i \
+   -pe 's=bin/caddy([^-])=bin/caddy-plus-tcp$1=;' \
+   -pe 's=/etc/caddy/Caddyfile([^\.])=/etc/caddy/Caddyfile.json$1=;' \
+   /lib/systemd/system/caddy.service
+
 
   sudo systemctl daemon-reload
   sudo systemctl enable consul-template
@@ -584,9 +596,15 @@ function setup-ctop() {
 }
 
 
-function getr() {
+function getrf() {
   # gets a supporting file from main repo into /tmp/
   wget --backups=1 -qP /tmp/ ${REPO}/"$1"
+}
+
+
+function getr() {
+  # gets a supporting file from main repo into /tmp/
+  getrf "$@"
   chmod +x /tmp/$(basename "$1")
 }
 
