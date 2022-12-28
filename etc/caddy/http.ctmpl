@@ -8,7 +8,7 @@
 
 # unknown hostnames go to IA 404 page
 http:// {
-	redir https://archive.org/about/404.html
+	redir https://archive.org/about/404.html # xxx 404 code?? (redir 200s :( )
 }
 
 # start off with nice, easy way to get to nomad
@@ -19,6 +19,14 @@ http:// {
 		on_demand
 	}
 }
+{{ if env "NOMAD_HOSTNAMES" | regexMatch "." }}
+{{ env "NOMAD_HOSTNAMES" }} {
+	reverse_proxy https://{{ env "HOSTNAME" }}:4646
+	tls {
+		on_demand
+	}
+}
+{{ end }}
 
 
 {{ range services -}}

@@ -9,6 +9,7 @@ source /etc/caddy/env
 
 export HOSTNAME=${HOSTNAME?}
 export TCP_DOMAIN=${TCP_DOMAIN?}
+export NOMAD_HOSTNAMES=$NOMAD_HOSTNAMES
 
 # wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 
