@@ -9,7 +9,6 @@ source /etc/caddy/env
 
 export HOSTNAME=${HOSTNAME?}
 export TCP_DOMAIN=${TCP_DOMAIN?}
-export NOMAD_HOSTNAMES=$NOMAD_HOSTNAMES
 
 # wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 
@@ -20,7 +19,20 @@ export NOMAD_HOSTNAMES=$NOMAD_HOSTNAMES
 
 cd /etc/caddy
 touch tmp.cad
-consul-template -template /etc/caddy/http.ctmpl:tmp.cad -once
+(
+  echo '
+{
+	on_demand_tls {
+		# ask /
+		interval 1m
+		burst 10
+	}
+}'
+  # Optional `base.ctmpl` file that an administrator may elect to use -- and we'll include it
+  cat base.ctmpl 2>/dev/null
+  cat http.ctmpl
+) >| http-base.ctmpl
+consul-template -template http-base.ctmpl:tmp.cad -once
 
 caddy fmt tmp.cad | caddy --config /dev/stdin adapt —adapter Caddyfile | jq . >| http.json
 
@@ -28,7 +40,7 @@ caddy fmt tmp.cad | caddy --config /dev/stdin adapt —adapter Caddyfile | jq . 
 
 
 touch tmp.json
-consul-template -template /etc/caddy/tcp.ctmpl:tmp.json -once
+consul-template -template tcp.ctmpl:tmp.json -once
 
 cat tmp.json | jq . >| tcp.json
 
