@@ -26,6 +26,9 @@ http:// {
 		on_demand
 	}
 }
+{{ env "NOMAD_HOSTNAMES" | regexReplaceAll "https://" "http://" }} {
+	redir https://{host}{uri} permanent
+}
 {{ end }}
 
 
