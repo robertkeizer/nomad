@@ -2,12 +2,15 @@
 # start off with nice, easy way to get to nomad
 
 {{ env "HOSTNAME" }} {
-	reverse_proxy https://{{ env "HOSTNAME" }}:4646
-	tls {
-		on_demand
-	}
+  reverse_proxy https://{{ env "HOSTNAME" }}:4646
+  tls {
+    on_demand
+  }
 }
 
+# NOTE: `trusted_proxies` is for `X-Forwarded-Host` header from something like nginx `proxy_pass`.
+# NOTE: `@not-nginx-proxy-pass` tries to identify requests *not* coming in from nginx `proxy_pass`;
+#        when this is the case, add HSTS header to tell browser to only use https not http.
 
 {{ range services -}}
   {{ range $tag, $services := service .Name|byTag -}}
@@ -17,7 +20,7 @@
 # Tag: {{ $tag }}
 # Name: {{ $service_name }}
 
-	  {{ if $tag | regexMatch "proto=tcp" -}}
+    {{ if $tag | regexMatch "proto=tcp" -}}
 # (rare) TCP only ports need to be ignored here -- @see tcp.ctmpl for how they get setup
     {{- else -}}
       {{- if $tag | regexMatch "urlprefix-" -}}
@@ -26,8 +29,43 @@
           {{- $host := $tag | regexReplaceAll "^urlprefix-" "" | regexReplaceAll ":443/" "" | regexReplaceAll "/" "" | regexReplaceAll " proto=.*" "" -}}
 
 
-					{{- if $tag | regexMatch ":443/" -}}
+          {{- if $tag | regexMatch ":443/" -}}
 
+
+https://{{ $host }} {
+  reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
+    lb_policy least_conn
+    trusted_proxies {{ env "TRUSTED_PROXIES" }}
+  }
+  tls {
+    on_demand
+  }
+}
+http://{{ $host }} {
+  @not-nginx-proxy-pass {
+    not {
+      header_regexp X-Forwarded-Proto "http"
+    }
+  }
+  header  @not-nginx-proxy-pass  Strict-Transport-Security  max-age=86400 # xxx increase from 1d
+
+  reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
+    lb_policy least_conn
+  }
+}
+
+          {{- else -}}
+
+            {{- if $tag | regexMatch "proto=http" -}}
+
+http://{{ $host }} {
+  reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
+    lb_policy least_conn
+  }
+}
+
+
+            {{- else -}}
 
 https://{{ $host }} {
   reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
@@ -37,33 +75,8 @@ https://{{ $host }} {
     on_demand
   }
 }
-http://{{ $host }} {
-	redir https://{host}{uri} permanent
-}
-
-					{{- else -}}
-
-						{{- if $tag | regexMatch "proto=http" -}}
-
-http://{{ $host }} {
-  reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
-    lb_policy least_conn
-  }
-}
-
-
-						{{- else -}}
-
-https://{{ $host }} {
-  reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
-    lb_policy least_conn
-  }
-  tls {
-    on_demand
-  }
-}
-						{{- end -}}
-					{{- end -}}
+            {{- end -}}
+          {{- end -}}
         {{- end -}}
       {{- end -}}
     {{- end -}}
