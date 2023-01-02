@@ -354,7 +354,6 @@ function setup-nomad {
 
   # now that this user and group exist, lock certs dir down
   sudo chown -R nomad.nomad /opt/nomad/tls
-  sudo adduser nomad nomaddy
 
 
   # setup the fields 'encrypt' etc. as per your cluster.
@@ -441,7 +440,7 @@ function setup-consul-caddy-certs-misc() {
   sudo chown caddy /var/lib/caddy
 
   for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
-    ln -s /nomad/etc/caddy/$i /etc/caddy/$i
+    sudo ln -s /nomad/etc/caddy/$i /etc/caddy/$i
   done
 
   echo '
