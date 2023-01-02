@@ -1,4 +1,4 @@
-#!/bin/zsh -e
+#!/bin/zsh -eu
 
 # One time setup of server(s) to make a nomad cluster.
 
@@ -104,13 +104,13 @@ function usage() {
 Usage: $MYSELF   <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
-We'll use lets encrypt generated certs that we'll create via \`caddy\`.
-xxx: after 90 days you may need restart/reload nomad.
-
 Make your first node be a FULLY-QUALIFIED DOMAIN NAME
   (and the one you'd like to use in urls if your machine has multiple names)
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
+
+We'll use lets encrypt generated certs that we'll create via \`caddy\`.
+xxx: after 90 days you may need restart/reload nomad.
 
 If invoking cmd-line has env var:
   NFSHOME=1                     -- then we'll setup /home/ r/o and r/w mounts
@@ -143,7 +143,7 @@ function main() {
   elif [ "$#" -gt 2 ]; then
     # This is where the script starts
 
-    for NODE in ${NODES?}; do
+    for NODE in $NODES; do
       ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad  &&  cd /nomad  &&  git pull )"
     done
 
@@ -152,7 +152,7 @@ function main() {
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
     # Run setups across all VMs.
     # https://learn.hashicorp.com/tutorials/nomad/clustering#use-consul-to-automatically-cluster-nodes
-    for NODE in ${NODES?}; do
+    for NODE in $NODES; do
       # setup environment vars, then run installer
       ssh $NODE  /nomad/setup.sh  setup-env-vars  "$@"
       ssh $NODE  /nomad/setup.sh  setup-consul-caddy-certs-misc
@@ -160,7 +160,7 @@ function main() {
 
 
     # Now get nomad configured and up - run "setup-nomad" on all VMs.
-    for NODE in ${NODES?}; do
+    for NODE in $NODES; do
       ssh $NODE  /nomad/setup.sh  setup-nomad
     done
 
@@ -206,10 +206,10 @@ function setup-env-vars() {
     echo export LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
 
     # Let's put caddy and consul on all servers
-    echo export CADDY_COUNT=${CLUSTER_SIZE?}
-    echo export CONSUL_COUNT=${CLUSTER_SIZE?}
+    echo export CADDY_COUNT=$CLUSTER_SIZE
+    echo export CONSUL_COUNT=$CLUSTER_SIZE
 
-    echo export NOMAD_ADDR="https://${FIRST_FQDN?}"
+    echo export NOMAD_ADDR="https://$FIRST_FQDN"
 
     echo export FIRST=$FIRST
     echo export FQDN=$(hostname -f)
@@ -222,9 +222,9 @@ function setup-env-vars() {
     echo export INITIAL_CLUSTER_SIZE=$INITIAL_CLUSTER_SIZE
 
     # For each NODE to install on, set the COUNT or hostnumber from the order from the command line.
-    COUNT=${INITIAL_CLUSTER_SIZE?}
-    for NODE in ${NODES?}; do
-      echo export COUNT_$COUNT=$NODE
+    COUNT=$INITIAL_CLUSTER_SIZE
+    for NODE in $NODES; do
+      echo export COUNT_$COUNT=$(echo $NODE | cut -f1 -d.)
       let "COUNT=$COUNT+1"
     done
   ) | sort >| /nomad/setup.env
@@ -295,24 +295,24 @@ function setup-consul() {
 
 
   # setup the fields 'encrypt' etc. as per your cluster.
-  if [ ${COUNT?} -eq 0 ]; then
+  if [ $COUNT -eq 0 ]; then
     # starting cluster - how exciting!  mint some tokens
     TOK_C=$(consul keygen |tr -d ^)
   else
     # get the encrypt value from the first node's configured consul /etc/ file
-    TOK_C=$(ssh ${FIRST?} "egrep '^encrypt\s*=' ${CONSUL_HCL?}" |cut -f2- -d= |tr -d '\t "')
+    TOK_C=$(ssh $FIRST "egrep '^encrypt\s*=' $CONSUL_HCL" |cut -f2- -d= |tr -d '\t "')
   fi
 
   # get IP address of FIRST
-  local FIRSTIP=$(host ${FIRST?} | perl -ane 'print $F[3] if $F[2] eq "address"' |head -1)
+  local FIRSTIP=$(host $FIRST | perl -ane 'print $F[3] if $F[2] eq "address"' |head -1)
 
   echo '
 server = true
 advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
 node_name = "'$(hostname -s)'"
-bootstrap_expect = '${CONSUL_COUNT?}'
-encrypt = "'${TOK_C?}'"
-retry_join = ["'${FIRSTIP?}'"]
+bootstrap_expect = '$CONSUL_COUNT'
+encrypt = "'$TOK_C'"
+retry_join = ["'$FIRSTIP'"]
 ' | sudo tee -a  $CONSUL_HCL
 
   # restart and give a few seconds to ensure server responds
@@ -356,9 +356,9 @@ function setup-nomad {
 
 
   # setup the fields 'encrypt' etc. as per your cluster.
-  [ ${COUNT?} -eq 0 ]  &&  export TOK_N=$(nomad operator keygen |tr -d ^ |cat)
+  [ $COUNT -eq 0 ]  &&  export TOK_N=$(nomad operator keygen |tr -d ^ |cat)
   # get the encrypt value from the first node's configured nomad /etc/ file
-  [ ${COUNT?} -ge 1 ]  &&  export TOK_N=$(ssh ${FIRST?} "egrep  'encrypt\s*=' ${NOMAD_HCL?}"  |cut -f2- -d= |tr -d '\t "' |cat)
+  [ $COUNT -ge 1 ]  &&  export TOK_N=$(ssh $FIRST "egrep  'encrypt\s*=' $NOMAD_HCL"  |cut -f2- -d= |tr -d '\t "' |cat)
 
   export HOME_NFS=/tmp/home
   mkdir -p $HOME_NFS
@@ -370,7 +370,7 @@ function setup-nomad {
 
 
   # setup only 1st server to go into bootstrap mode (with itself)
-  [ ${COUNT?} -ge 1 ] && sudo sed -i -e 's^bootstrap_expect =.*$^^' $NOMAD_HCL
+  [ $COUNT -ge 1 ] && sudo sed -i -e 's^bootstrap_expect =.*$^^' $NOMAD_HCL
 
 
   # restart and give a few seconds to ensure server responds
@@ -401,7 +401,7 @@ function nomad-addr-and-token() {
     [ -e $CONF ]  &&  mv $CONF $CONF.prev
     # we only get one shot at bootstrapping the ACL info access to nomad -- so save entire response
     # to a separate file (that we can extract needed TOKEN from)
-    local NOMACL=$HOME/.config/nomad.${FIRST?}
+    local NOMACL=$HOME/.config/nomad.$FIRST
     mkdir -p $(dirname $NOMACL)
     chmod 600 $NOMACL $CONF 2>/dev/null |cat
     nomad acl bootstrap |tee $NOMACL
@@ -454,7 +454,7 @@ function setup-consul-caddy-certs-misc() {
   sudo chmod +x  /usr/bin/caddy-plus-tcp
 
   (
-    echo HOSTNAME=${FQDN?}
+    echo HOSTNAME=$FQDN
     echo TCP_DOMAIN=dev.archive.org # xxx
   ) |sudo tee /etc/caddy/env
 
