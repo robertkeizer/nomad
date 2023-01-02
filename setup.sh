@@ -137,11 +137,19 @@ you should manually change 2 lines in \`setup-env-vars()\` in script -- look for
 
 
 function main() {
- if [ "$1" = "setup-env-vars" ]; then
+  # avoids any potentially previously set external environment vars from CLI poisoning..
+  unset   NOMAD_TOKEN
+
+  typeset -a $NODES # array type env variable
+
+  if [ "$1" = "setup-env-vars" ]; then
     setup-env-vars "$@"
 
   elif [ "$#" -gt 1 ]; then
     # This is where the script starts
+
+    # number of args from the command line are all the hostnames to setup
+    NODES=( "$@" )
 
     for NODE in $NODES; do
       ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad  &&  cd /nomad  &&  git pull )"
@@ -181,12 +189,7 @@ function main() {
 function setup-env-vars() {
   # sets up environment variables into a tmp file and then sources it
 
-  # avoid any potentially previously set external environment vars from CLI poisoning..
-  unset   NOMAD_TOKEN
-  unset   NOMAD_ADDR
-
   # number of args from the command line are all the hostnames to setup
-  typeset -a $NODES # array type env variable
   shift
   NODES=( "$@" )
   CLUSTER_SIZE=$#
