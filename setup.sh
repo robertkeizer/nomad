@@ -418,7 +418,7 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 }
 
 
-function setup-consul-caddy-certs-misc() {
+function setup-consul-caddy-certs-misc() { # xxx have to get *all* consuls up first, to elect leader, *then* setup caddy & consul-template...
   load-env-vars
 
   setup-hashicorp

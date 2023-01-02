@@ -30,7 +30,7 @@ touch tmp.cad
 	}
 }'
   # Optional `base.ctmpl` file that an administrator may elect to use -- and we'll include it
-  cat base.ctmpl 2>/dev/null
+  cat base.ctmpl 2>/dev/null  ||  echo
   cat http.ctmpl
 ) >| http-base.ctmpl
 consul-template -template http-base.ctmpl:tmp.cad -once
