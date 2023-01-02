@@ -2,9 +2,6 @@
 
 # One time setup of server(s) to make a nomad cluster.
 
-# xxx https://caddy.community/t/how-to-use-hsts-for-proxied-http-server/5301
-#    header Strict-Transport-Security max-age=31536000;
-#
 # xxx 2+ ip addresses for hostname to caddy LB https://caddy.community/t/caddy-as-clustered-load-balancer-hows-that-gonna-work/12510
 #    could share certs dir over NFS or use Caddy API
 
@@ -97,28 +94,21 @@ moo.code.archive.org:80 {
 MYDIR=${0:a:h}
 MYSELF=$MYDIR/setup.sh
 
-# where supporting scripts live and will get pulled from
-REPO=https://gitlab.com/internetarchive/nomad/-/raw/master
+# Our git repo
+REPO=https://gitlab.com/internetarchive/nomad
 
 
 function usage() {
   echo "
 ----------------------------------------------------------------------------------------------------
-Usage: $MYSELF  [- OR TLS_CRT file]  [- OR TLS_KEY file]  <node 1>  <node 2>  ..
+Usage: $MYSELF   <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
-You can pass in '-' for TLS_CRT and TLS_KEY arguments -- and we'll use lets encrypt generated certs
-that we'll create via \`caddy\`.
-BUT NOTE: they will expire in 90 days and you may need to re-copy the certs and restart nomad.
+We'll use lets encrypt generated certs that we'll create via \`caddy\`.
+xxx: after 90 days you may need restart/reload nomad.
 
 Make your first node be a FULLY-QUALIFIED DOMAIN NAME
   (and the one you'd like to use in urls if your machine has multiple names)
-
-[TLS_CRT file] - cert file location, PEM format.  eg: .../archive.org-cert.pem
-[TLS_KEY file] - key  file location, PEM format.  eg: .../archive.org-key.pem
-    File locations can be local to each VM
-    or in \`rsync\` format where you prepend '[SERVER]:' in the filename
-    We use to setup ACL and TLS for nomad.
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
 
@@ -147,26 +137,31 @@ you should manually change 2 lines in \`setup-env-vars()\` in script -- look for
 
 
 function main() {
-  if [ "$#" -gt 2 ]; then
-    # This is where the script starts
+ if [ "$1" = "setup-env-vars" ]; then
     setup-env-vars "$@"
+
+  elif [ "$#" -gt 2 ]; then
+    # This is where the script starts
+
+    for NODE in ${NODES?}; do
+      ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad  &&  cd /nomad  &&  git pull )"
+    done
+
     set -x
 
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
     # Run setups across all VMs.
     # https://learn.hashicorp.com/tutorials/nomad/clustering#use-consul-to-automatically-cluster-nodes
     for NODE in ${NODES?}; do
-      # copy ourself / this script & env file over to the node first, then run script
-      cat /tmp/setup.env | ssh $NODE 'tee /tmp/setup.env >/dev/null'
-      cat ${MYSELF}      | ssh $NODE 'tee /tmp/setup.sh  >/dev/null  &&  chmod +x /tmp/setup.sh'
-
-      ssh $NODE  /tmp/setup.sh  setup-consul-caddy-certs-misc
+      # setup environment vars, then run installer
+      ssh $NODE  /nomad/setup.sh  setup-env-vars  "$@"
+      ssh $NODE  /nomad/setup.sh  setup-consul-caddy-certs-misc
     done
 
 
     # Now get nomad configured and up - run "setup-nomad" on all VMs.
     for NODE in ${NODES?}; do
-      ssh $NODE  /tmp/setup.sh  setup-nomad
+      ssh $NODE  /nomad/setup.sh  setup-nomad
     done
 
     finish
@@ -190,14 +185,9 @@ function setup-env-vars() {
   unset   NOMAD_TOKEN
   unset   NOMAD_ADDR
 
-
-  TLS_CRT=$1  # @see bin/create-https-certs.sh - fully qualified path to crt file it created
-  TLS_KEY=$2  # @see bin/create-https-certs.sh - fully qualified path to key file it created
-  shift
-  shift
-
-  # number of args now left from the command line are all the hostnames to setup
+  # number of args from the command line are all the hostnames to setup
   typeset -a $NODES # array type env variable
+  shift
   NODES=( "$@" )
   CLUSTER_SIZE=$#
 
@@ -222,9 +212,7 @@ function setup-env-vars() {
     echo export NOMAD_ADDR="https://${FIRST_FQDN?}"
 
     echo export FIRST=$FIRST
-    echo export FIRST_FQDN=$FIRST_FQDN
-    echo export TLS_CRT=$TLS_CRT
-    echo export TLS_KEY=$TLS_KEY
+    echo export FQDN=$(hostname -f)
     echo export NFSHOME=$NFSHOME
     echo export NFS_PV="$NFS_PV"
     echo export CLUSTER_SIZE=$CLUSTER_SIZE
@@ -239,9 +227,9 @@ function setup-env-vars() {
       echo export COUNT_$COUNT=$NODE
       let "COUNT=$COUNT+1"
     done
-  ) |sort >| /tmp/setup.env
+  ) | sort >| /nomad/setup.env
 
-  source /tmp/setup.env
+  source /nomad/setup.env
 }
 
 
@@ -251,7 +239,7 @@ function load-env-vars() {
   unset   NOMAD_ADDR
 
   # loads environment variables that `setup-env-vars` previously setup
-  source /tmp/setup.env
+  source /nomad/setup.env
 
   # Now figure out what our COUNT number is for the host we are running on now.
   # Try short and FQDN hostnames since not sure what user ran on cmd-line.
@@ -377,10 +365,8 @@ function setup-nomad {
   [ $NFSHOME ]  &&  export HOME_NFS=/home
 
 
-  getrf etc/nomad.hcl
-  # interpolate  /tmp/nomad.hcl  to  $NOMAD_HCL
-  ( echo "cat <<EOF"; cat /tmp/nomad.hcl; echo EOF ) | sh | sudo tee $NOMAD_HCL
-  rm /tmp/nomad.hcl
+  # interpolate  nomad.hcl  to  $NOMAD_HCL
+  ( echo "cat <<EOF"; cat /nomad/etc/nomad.hcl; echo EOF ) | sh | sudo tee $NOMAD_HCL
 
 
   # setup only 1st server to go into bootstrap mode (with itself)
@@ -452,19 +438,9 @@ function setup-consul-caddy-certs-misc() {
   sudo mkdir -p    /var/lib/caddy
   sudo chown caddy /var/lib/caddy
 
-  getrf     etc/caddy/http.ctmpl
-  getrf     etc/caddy/tcp.ctmpl
-  getrf     etc/caddy/Caddyfile.ctmpl
-  getr      etc/caddy/build.sh
-  (
-    cd /tmp
-    sudo mv \
-      http.ctmpl \
-      tcp.ctmpl \
-      Caddyfile.ctmpl \
-      build.sh \
-      /etc/caddy/
-  )
+  for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
+    ln -s /nomad/etc/caddy/$i /etc/caddy/$i
+  done
 
   echo '
 :80 {
@@ -478,13 +454,12 @@ function setup-consul-caddy-certs-misc() {
   sudo chmod +x  /usr/bin/caddy-plus-tcp
 
   (
-    echo HOSTNAME=$FIRST_FQDN
+    echo HOSTNAME=${FQDN?}
     echo TCP_DOMAIN=dev.archive.org # xxx
   ) |sudo tee /etc/caddy/env
 
 
-  getrf etc/systemd/system/consul-template.service
-  sudo mv  /tmp/consul-template.service  /etc/systemd/system/
+  sudo cp /nomad/etc/systemd/system/consul-template.service  /etc/systemd/system/
 
 
   sudo perl -i \
@@ -505,8 +480,7 @@ function setup-misc() {
   sudo apt-get -yqq install  wget
 
   # install docker if not already present
-  getr bin/install-docker-ce.sh
-  /tmp/install-docker-ce.sh
+  /nomad/bin/install-docker-ce.sh
 
   setup-ctop
 
@@ -516,8 +490,7 @@ function setup-misc() {
   if [ -e /etc/ferm ]; then
     # archive.org uses `ferm` for port firewalling.
     # Open the minimum number of HTTP/TCP/UDP ports we need to run.
-    getr bin/ports-unblock.sh
-    /tmp/ports-unblock.sh
+    /nomad/bin/ports-unblock.sh
     sudo service docker restart  ||  echo 'no docker yet'
   fi
 
@@ -549,32 +522,24 @@ function setup-misc() {
 
 function setup-certs() {
   # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely
+
+  # wait for lets encrypt certs
+  TLS_CRT=$LETSENCRYPT_DIR/$FQDN/$FQDN.crt
+  TLS_KEY=$LETSENCRYPT_DIR/$FQDN/$FQDN.key
+
+  wget -q --server-response http://$FQDN
+
+  while true; do
+    ( sudo cat $TLS_KEY |egrep . ) && break
+    echo "waiting for $FQDN certs"
+    sleep 1
+  done
+  sleep 2
+
+
   sudo mkdir -m 500 -p        /opt/nomad/tls
   sudo chmod -R go-rwx        /opt/nomad/tls
-
-  if [ "$TLS_CRT" = "-" ]; then
-    # wait for lets encrypt certs
-    [ "$TLS_CRT" = "-" ] && TLS_CRT=$LETSENCRYPT_DIR/$FIRST_FQDN/$FIRST_FQDN.crt
-    [ "$TLS_KEY" = "-" ] && TLS_KEY=$LETSENCRYPT_DIR/$FIRST_FQDN/$FIRST_FQDN.key
-
-    wget -q --server-response http://$FIRST_FQDN
-
-    while true; do
-      ( sudo cat $TLS_KEY |egrep . ) && break
-      echo "waiting for $FIRST_FQDN certs"
-      sleep 1
-    done
-    sleep 2
-
-    # make caddy + nomad group that can both read certs -- so we can symlink
-    sudo addgroup nomaddy
-    sudo adduser caddy nomaddy
-  else
-    sudo rsync -Pav ${TLS_CRT?} /opt/nomad/tls/tls.crt
-    sudo rsync -Pav ${TLS_KEY?} /opt/nomad/tls/tls.key
-    sudo chmod 444              /opt/nomad/tls/tls.crt
-    sudo chmod 400              /opt/nomad/tls/tls.key
-  fi
+  /nomad/bin/nomad-tls.sh # xxx cron daily this
 }
 
 
@@ -596,19 +561,6 @@ function setup-ctop() {
   wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
   sudo apt-get -yqq update
   sudo apt-get install -yqq docker-ctop
-}
-
-
-function getrf() {
-  # gets a supporting file from main repo into /tmp/
-  wget --backups=1 -qP /tmp/ ${REPO}/"$1"
-}
-
-
-function getr() {
-  # gets a supporting file from main repo into /tmp/
-  getrf "$@"
-  chmod +x /tmp/$(basename "$1")
 }
 
 
