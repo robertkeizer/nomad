@@ -140,7 +140,7 @@ function main() {
   # avoids any potentially previously set external environment vars from CLI poisoning..
   unset   NOMAD_TOKEN
 
-  typeset -a $NODES # array type env variable
+  typeset -a NODES # array type env variable
 
   if [ "$1" = "setup-env-vars" ]; then
     setup-env-vars "$@"
