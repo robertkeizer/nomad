@@ -215,8 +215,8 @@ function setup-env-vars() {
 
     echo export FIRST=$FIRST
     echo export FQDN=$(hostname -f)
-    echo export NFSHOME=$NFSHOME
-    echo export NFS_PV="$NFS_PV"
+    echo export NFSHOME=${NFSHOME:-""}
+    echo export NFS_PV="${NFS_PV:-""}"
     echo export CLUSTER_SIZE=$CLUSTER_SIZE
 
     # this is normally 0, but if you later add nodes to an existing cluster, set this to
