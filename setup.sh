@@ -140,7 +140,7 @@ function main() {
  if [ "$1" = "setup-env-vars" ]; then
     setup-env-vars "$@"
 
-  elif [ "$#" -gt 2 ]; then
+  elif [ "$#" -gt 1 ]; then
     # This is where the script starts
 
     for NODE in $NODES; do
