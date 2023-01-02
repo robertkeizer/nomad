@@ -95,7 +95,7 @@ MYDIR=${0:a:h}
 MYSELF=$MYDIR/setup.sh
 
 # Our git repo
-REPO=https://gitlab.com/internetarchive/nomad
+REPO=https://gitlab.com/internetarchive/nomad.git
 
 
 function usage() {
@@ -147,15 +147,14 @@ function main() {
 
   elif [ "$#" -gt 1 ]; then
     # This is where the script starts
+    set -x
 
     # number of args from the command line are all the hostnames to setup
     NODES=( "$@" )
 
     for NODE in $NODES; do
-      ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad  &&  cd /nomad  &&  git pull )"
+      ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad;  cd /nomad  &&  sudo git pull"
     done
-
-    set -x
 
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
     # Run setups across all VMs.
@@ -230,7 +229,7 @@ function setup-env-vars() {
       echo export COUNT_$COUNT=$(echo $NODE | cut -f1 -d.)
       let "COUNT=$COUNT+1"
     done
-  ) | sort >| /nomad/setup.env
+  ) | sort | sudo tee /nomad/setup.env
 
   source /nomad/setup.env
 }
