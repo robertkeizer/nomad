@@ -439,15 +439,9 @@ function setup-consul-caddy-certs-misc() {
   sudo mkdir -p    /var/lib/caddy
   sudo chown caddy /var/lib/caddy
 
-  for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
+  for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  Caddyfile.static  build.sh; do
     sudo ln -s /nomad/etc/caddy/$i /etc/caddy/$i
   done
-
-  echo '
-:80 {
-  root * /usr/share/caddy
-  file_server
-}' |sudo tee /etc/caddy/Caddyfile.static
 
 
   # get a compiled `caddy` binary that has plugin with additional raw TCP ability built-in
