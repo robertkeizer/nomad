@@ -162,9 +162,12 @@ function main() {
     for NODE in $NODES; do
       # setup environment vars, then run installer
       ssh $NODE  /nomad/setup.sh  setup-env-vars  "$@"
-      ssh $NODE  /nomad/setup.sh  setup-consul-caddy-certs-misc
+      ssh $NODE  /nomad/setup.sh  setup-consul-caddy-misc
     done
 
+    for NODE in $NODES; do
+      ssh $NODE  /nomad/setup.sh  setup-certs
+    done
 
     # Now get nomad configured and up - run "setup-nomad" on all VMs.
     for NODE in $NODES; do
@@ -173,8 +176,11 @@ function main() {
 
     finish
 
-  elif [ "$1" = "setup-consul-caddy-certs-misc" ]; then
-    setup-consul-caddy-certs-misc
+  elif [ "$1" = "setup-consul-caddy-misc" ]; then
+    setup-consul-caddy-misc
+
+  elif [ "$1" = "setup-certs" ]; then
+    setup-certs
 
   elif [ "$1" = "setup-nomad" ]; then
     setup-nomad
@@ -418,7 +424,7 @@ export NOMAD_TOKEN="$(fgrep 'Secret ID' $NOMACL |cut -f2- -d= |tr -d ' ') |tee $
 }
 
 
-function setup-consul-caddy-certs-misc() { # xxx have to get *all* consuls up first, to elect leader, *then* setup caddy & consul-template...
+function setup-consul-caddy-misc() {
   load-env-vars
 
   setup-hashicorp
@@ -452,8 +458,12 @@ function setup-consul-caddy-certs-misc() { # xxx have to get *all* consuls up fi
     echo HOSTNAME=$FQDN
     echo TCP_DOMAIN=dev.archive.org # xxx
   ) |sudo tee /etc/caddy/env
+}
 
+function setup-certs() {
+  # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely.
 
+  # now that consul is clustered and happy, we can customize `consul-template` and `caddy`
   sudo cp /nomad/etc/systemd/system/consul-template.service  /etc/systemd/system/
 
 
@@ -467,7 +477,24 @@ function setup-consul-caddy-certs-misc() { # xxx have to get *all* consuls up fi
   sudo systemctl enable consul-template
   sudo systemctl status consul-template
 
-  setup-certs
+
+  # wait for lets encrypt certs
+  TLS_CRT=$LETSENCRYPT_DIR/$FQDN/$FQDN.crt
+  TLS_KEY=$LETSENCRYPT_DIR/$FQDN/$FQDN.key
+
+  wget -q --server-response http://$FQDN
+
+  while true; do
+    ( sudo cat $TLS_KEY |egrep . ) && break
+    echo "waiting for $FQDN certs"
+    sleep 1
+  done
+  sleep 2
+
+
+  sudo mkdir -m 500 -p        /opt/nomad/tls
+  sudo chmod -R go-rwx        /opt/nomad/tls
+  /nomad/bin/nomad-tls.sh # xxx cron daily this
 }
 
 function setup-misc() {
@@ -512,29 +539,6 @@ function setup-misc() {
   # IA Samuel only recomends on hosts w/ heavy fs metadata behavior + kernel 5.4 or newer for now.
   # You can verify the value via: `cat /proc/sys/vm/dirty_bytes`
   echo 'vm.dirty_bytes=3221225472' |sudo tee /etc/sysctl.d/90-vm-dirty_bytes.conf
-}
-
-
-function setup-certs() {
-  # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely
-
-  # wait for lets encrypt certs
-  TLS_CRT=$LETSENCRYPT_DIR/$FQDN/$FQDN.crt
-  TLS_KEY=$LETSENCRYPT_DIR/$FQDN/$FQDN.key
-
-  wget -q --server-response http://$FQDN
-
-  while true; do
-    ( sudo cat $TLS_KEY |egrep . ) && break
-    echo "waiting for $FQDN certs"
-    sleep 1
-  done
-  sleep 2
-
-
-  sudo mkdir -m 500 -p        /opt/nomad/tls
-  sudo chmod -R go-rwx        /opt/nomad/tls
-  /nomad/bin/nomad-tls.sh # xxx cron daily this
 }
 
 
