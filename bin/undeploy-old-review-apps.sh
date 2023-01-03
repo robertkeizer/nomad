@@ -23,7 +23,7 @@ for JOB_START in $(echo $JOB_STARTS); do
     let "DAYS=$SECONDS/86400"
     set -e
     # dont trust any age more than a year -- in case something strange went wrong in computing age
-    [ $SECONDS -gt 365 ] && continue
+    [ $DAYS -gt 365 ] && continue
 
     echo "$ID\t$YMD => $DAYS"
     [ $DAYS -lt $MAX_DAYS_OLD ] && continue
