@@ -451,7 +451,7 @@ function setup-consul-caddy-misc() {
   sudo mkdir -p    /var/lib/caddy
   sudo chown caddy /var/lib/caddy
 
-  for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  Caddyfile.static  build.sh; do
+  for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
     sudo ln -s /nomad/etc/caddy/$i /etc/caddy/$i
   done
 
