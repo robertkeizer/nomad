@@ -45,7 +45,7 @@ test:
 - [optional] you can copy this [project.nomad](project.nomad) file into your repo top level and customize/extend it if desired
 - _... but there's a good chance you won't need to_ 😎
 
-_**Note:** watch out for routes defined in your app with trailing slashes–they may redirect to project.dev.archive.org. More information [here](https://git.archive.org/services/pyhi/-/blob/main/README.md#notes)._
+_**Note:** For urls like https://archive.org/services/project -- watch out for routes defined in your app with trailing slashes – they may redirect to project.dev.archive.org. More information [here](https://git.archive.org/services/pyhi/-/blob/main/README.md#notes)._
 
 ### Customizing
 There are various options that can be used in conjunction with the `project.nomad` and `.gitlab-ci.yml` files, keys:
