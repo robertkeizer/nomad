@@ -193,6 +193,7 @@ function main() {
 
 function setup-env-vars() {
   # sets up environment variables into a tmp file and then sources it
+  set -x
 
   # number of args from the command line are all the hostnames to setup
   shift
@@ -264,6 +265,7 @@ function load-env-vars() {
 
 
 function setup-consul-and-misc() {
+  set -x
   load-env-vars
 
   cd /tmp
@@ -343,6 +345,8 @@ retry_join = ["'$FIRSTIP'"]
 
 function setup-nomad {
   # sets up nomad
+  set -x
+
   load-env-vars
 
   sudo apt-get -yqq install  nomad
@@ -464,6 +468,7 @@ function setup-consul-caddy-misc() {
 
 function setup-certs() {
   # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely.
+  set -x
 
   # now that consul is clustered and happy, we can customize `consul-template` and `caddy`
   sudo cp /nomad/etc/systemd/system/consul-template.service  /etc/systemd/system/
