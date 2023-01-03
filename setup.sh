@@ -489,7 +489,7 @@ function setup-certs() {
   sudo systemctl enable consul-template
   sudo systemctl start  consul-template
   sudo systemctl status consul-template | cat
-  sudo systemctl restart caddy
+  sudo systemctl restart caddy || echo hmm
 
 
   # wait for lets encrypt certs
@@ -509,7 +509,7 @@ function setup-certs() {
 
   sudo mkdir -m 500 -p        /opt/nomad/tls
   sudo chmod -R go-rwx        /opt/nomad/tls
-  /nomad/bin/nomad-tls.sh # xxx cron daily this
+  /nomad/bin/nomad-tls.sh
 }
 
 function setup-misc() {

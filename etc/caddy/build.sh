@@ -53,4 +53,9 @@ jq -s '.[0] * .[1]' tcp.json http.json >| Caddyfile.json
 /usr/bin/caddy-plus-tcp reload --config /etc/caddy/Caddyfile.json --force
 
 
+# not related directly -- but anytime deploys update, might as well ensure nomad TLS files
+# are up-to-date since caddy mints and auto-updates the https certs files
+/nomad/bin/nomad-tls.sh
+
+
 echo SUCCESS
