@@ -470,6 +470,8 @@ function setup-certs() {
   # setup nomad w/ https certs so they can talk to each other, and we can talk to them securely.
   set -x
 
+  load-env-vars
+
   # now that consul is clustered and happy, we can customize `consul-template` and `caddy`
   sudo cp /nomad/etc/systemd/system/consul-template.service  /etc/systemd/system/
 
@@ -479,21 +481,25 @@ function setup-certs() {
    -pe 's=/etc/caddy/Caddyfile([^\.])=/etc/caddy/Caddyfile.json$1=;' \
    /lib/systemd/system/caddy.service
 
+  fgrep Restart=always /lib/systemd/system/caddy.service ||
+    sudo perl -i -pe 's/\[Service\]/[Service]\nRestart=always/' /lib/systemd/system/caddy.service
+
 
   sudo systemctl daemon-reload
-  sudo systemctl restart caddy
   sudo systemctl enable consul-template
   sudo systemctl start  consul-template
-  sudo systemctl status consul-template
+  sudo systemctl status consul-template | cat
+  sudo systemctl restart caddy
 
 
   # wait for lets encrypt certs
   TLS_CRT=$LETSENCRYPT_DIR/$FQDN/$FQDN.crt
   TLS_KEY=$LETSENCRYPT_DIR/$FQDN/$FQDN.key
 
-  wget -q --server-response https://$FQDN
 
   while true; do
+    wget -q --server-response https://$FQDN || echo wget fail
+
     ( sudo cat $TLS_KEY |egrep . ) && break
     echo "waiting for $FQDN certs"
     sleep 1
