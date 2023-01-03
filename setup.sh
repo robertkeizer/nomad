@@ -334,10 +334,10 @@ retry_join = ["'$FIRSTIP'"]
 
 
   set +x
-
   echo "================================================================================"
   ( set -x; consul members )
   echo "================================================================================"
+  set -x
 }
 
 
@@ -396,6 +396,8 @@ function setup-nomad {
   echo "================================================================================"
   ( set -x; nomad node status )
   echo "================================================================================"
+
+  set -x
 }
 
 
@@ -474,7 +476,9 @@ function setup-certs() {
 
 
   sudo systemctl daemon-reload
+  sudo systemctl restart caddy
   sudo systemctl enable consul-template
+  sudo systemctl start  consul-template
   sudo systemctl status consul-template
 
 
@@ -482,7 +486,7 @@ function setup-certs() {
   TLS_CRT=$LETSENCRYPT_DIR/$FQDN/$FQDN.crt
   TLS_KEY=$LETSENCRYPT_DIR/$FQDN/$FQDN.key
 
-  wget -q --server-response http://$FQDN
+  wget -q --server-response https://$FQDN
 
   while true; do
     ( sudo cat $TLS_KEY |egrep . ) && break

@@ -9,8 +9,8 @@ LE_KEY=$LETSENCRYPT_DIR/$FQDN/$FQDN.key
 CRT=/opt/nomad/tls/tls.crt
 KEY=/opt/nomad/tls/tls.key
 
-sudo cp  $TLS_CRT  $CRT
-sudo cp  $TLS_KEY  $KEY
+sudo cp  $LE_CRT  $CRT
+sudo cp  $LE_KEY  $KEY
 sudo chown root.root   $CRT
 sudo chown nomad.nomad $KEY  ||  echo nomad user gets created later
 sudo chmod 444 $CRT
