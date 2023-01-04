@@ -6,94 +6,6 @@
 #    could share certs dir over NFS or use Caddy API
 
 
-echo '
-# xxx wss dweb "in v2, you do not need to do anything to enable websockets."
-dweb-webtorrent/.gitlab-ci.yml:  NOMAD_VAR_PORTS: { 7777 = "http", 6969 = "webtorrenttracker", 6881 = "webtorrentseeder" }
-wss://wt.archive.org:6969
-
-scribe-c2/.gitlab-ci.yml:  NOMAD_VAR_PORTS: { 9999 = "http" , -7777 = "tcp", 8889 = "reg" }
-
-
-https://gitlab.com/internetarchive/nomad/-/blob/fabio/etc/fabio.properties
-8989 http only (lcp)
-7777 tcp (scribe-c2)(irc) (see `tcp` subdir)
-(8200 tcp (testing only))
-
-  "services-scribe-c2": [
-    "urlprefix-services-scribe-c2.dev.archive.org"
-  ],
-  "services-scribe-c2-tcp": [
-    "urlprefix-:7777 proto=tcp"
-  ],
-
-
-  "www-dweb": [
-    "urlprefix-gateway.dweb.me",
-    "urlprefix-dweb.me",
-    "urlprefix-dweb.archive.org",
-  ],
-  "www-dweb-WOLK": [
-    "urlprefix-dweb.archive.org:99/"
-  ],
-
-
-  "www-dwebcamp2022": [
-    "urlprefix-www.dwebcamp.org",
-    "urlprefix-dwebcamp.org",
-    "urlprefix-www-dwebcamp2022.dev.archive.org",
-    "urlprefix-dwebcamp.dev.archive.org",
-  ],
-  "www-dwebcamp2022-db": [
-    "urlprefix-dwebcamp.org:5432/"
-  ],
-
-
-  "services-scribe-loki": [
-    "urlprefix-services-scribe-loki.books-loki.archive.org",
-  ],
-  "services-scribe-loki-grafana": [
-    "urlprefix-services-scribe-loki.books-loki.archive.org:3000/"
-  ],
-  "services-scribe-loki-prometheus": [
-    "urlprefix-services-scribe-loki.books-loki.archive.org:9090/"
-  ]
-' > /dev/null
-
-echo '
-# TYPICAL
-moo.code.archive.org {
-	reverse_proxy 207.241.234.143:25496 {
-		lb_policy least_conn
-	}
-}
-
-# HTTPS alt port xxx
-a.code.archive.org:8012 {
-	reverse_proxy 207.241.234.143:25496 {
-		lb_policy least_conn
-	}
-}
-
-# HTTP alt port xxx
-http://a.code.archive.org:8990 {
-	reverse_proxy 207.241.234.143:25496 {
-		lb_policy least_conn
-	}
-}
-
-# HTTP (only) xxx
-moo.code.archive.org:80 {
-	reverse_proxy 207.241.234.143:25496 {
-		lb_policy least_conn
-	}
-}
-
-' > /dev/null
-
-
-MYDIR=${0:a:h}
-MYSELF=$MYDIR/setup.sh
-
 # Our git repo
 REPO=https://gitlab.com/internetarchive/nomad.git
 
@@ -101,7 +13,7 @@ REPO=https://gitlab.com/internetarchive/nomad.git
 function usage() {
   echo "
 ----------------------------------------------------------------------------------------------------
-Usage: $MYSELF   <node 1>  <node 2>  ..
+Usage: setup.sh   <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
 Make your first node be a FULLY-QUALIFIED DOMAIN NAME
@@ -129,7 +41,7 @@ Overview:
 
 ----------------------------------------------------------------------------------------------------
 NOTE: if setup 3 nodes (h0, h1 & h2) on day 1; and want to add 2 more (h3 & h4) later,
-you should manually change 2 lines in \`setup-env-vars()\` in script -- look for INITIAL_CLUSTER_SIZE
+you should manually change a lines in \`setup-env-vars()\` in script -- look for FIRST=
 
 "
   exit 1
@@ -198,44 +110,24 @@ function setup-env-vars() {
   # number of args from the command line are all the hostnames to setup
   shift
   NODES=( "$@" )
-  CLUSTER_SIZE=$#
 
 
-  # This is normally 0, but if you later add nodes to an existing cluster, set this to
-  # the number of nodes in the existing cluster.
-  # Also manually set FIRST here to hostname of your existing cluster first VM.
-  local INITIAL_CLUSTER_SIZE=0
+  # If you later add nodes to an existing cluster,
+  # *MANUALLY* set FIRST here to hostname of your existing cluster's first VM.
   FIRST=$NODES[1]
-  FIRST_FQDN=$NODES[1]
+
 
   # write all our needed environment variables to a file
   (
-    # logical constants
+    echo export  NOMAD_ADDR="https://$FIRST"
     echo export CONSUL_ADDR="http://localhost:8500"
+
     echo export LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
-
-    # Let's put caddy and consul on all servers
-    echo export CADDY_COUNT=$CLUSTER_SIZE
-    echo export CONSUL_COUNT=$CLUSTER_SIZE
-
-    echo export NOMAD_ADDR="https://$FIRST_FQDN"
 
     echo export FIRST=$FIRST
     echo export FQDN=$(hostname -f)
     echo export NFSHOME=${NFSHOME:-""}
     echo export NFS_PV="${NFS_PV:-""}"
-    echo export CLUSTER_SIZE=$CLUSTER_SIZE
-
-    # this is normally 0, but if you later add nodes to an existing cluster, set this to
-    # the number of nodes in the existing cluster.
-    echo export INITIAL_CLUSTER_SIZE=$INITIAL_CLUSTER_SIZE
-
-    # For each NODE to install on, set the COUNT or hostnumber from the order from the command line.
-    COUNT=$INITIAL_CLUSTER_SIZE
-    for NODE in $NODES; do
-      echo export COUNT_$COUNT=$(echo $NODE | cut -f1 -d.)
-      let "COUNT=$COUNT+1"
-    done
   ) | sort | sudo tee /nomad/setup.env
 
   source /nomad/setup.env
@@ -249,16 +141,6 @@ function load-env-vars() {
 
   # loads environment variables that `setup-env-vars` previously setup
   source /nomad/setup.env
-
-  # Now figure out what our COUNT number is for the host we are running on now.
-  # Try short and FQDN hostnames since not sure what user ran on cmd-line.
-  for HO in  $(hostname -s)  $(hostname); do
-    export COUNT=$(env |egrep '^COUNT_'| fgrep "$HO" |cut -f1 -d= |cut -f2 -d_)
-    [ -z "$COUNT" ]  ||  break
-  done
-
-  # the FIRST host *might* not be same as $(hostname) -- in that case we are 0
-  [ -z "$COUNT" ]  &&  export COUNT=0
 
   set -x
 }
@@ -305,7 +187,7 @@ function setup-consul() {
 
 
   # setup the fields 'encrypt' etc. as per your cluster.
-  if [ $COUNT -eq 0 ]; then
+  if [ $FIRST = $FQDN ]; then
     # starting cluster - how exciting!  mint some tokens
     TOK_C=$(consul keygen |tr -d ^)
   else
@@ -367,9 +249,12 @@ function setup-nomad {
 
 
   # setup the fields 'encrypt' etc. as per your cluster.
-  [ $COUNT -eq 0 ]  &&  export TOK_N=$(nomad operator keygen |tr -d ^ |cat)
-  # get the encrypt value from the first node's configured nomad /etc/ file
-  [ $COUNT -ge 1 ]  &&  export TOK_N=$(ssh $FIRST "egrep  'encrypt\s*=' $NOMAD_HCL"  |cut -f2- -d= |tr -d '\t "' |cat)
+  if [ $FIRST = $FQDN ]; then
+    export TOK_N=$(nomad operator keygen |tr -d ^ |cat)
+  else
+    # get the encrypt value from the first node's configured nomad /etc/ file
+    export TOK_N=$(ssh $FIRST "egrep  'encrypt\s*=' $NOMAD_HCL"  |cut -f2- -d= |tr -d '\t "' |cat)
+  fi
 
   export HOME_NFS=/tmp/home
   mkdir -p $HOME_NFS
@@ -381,7 +266,7 @@ function setup-nomad {
 
 
   # setup only 1st server to go into bootstrap mode (with itself)
-  [ $COUNT -ge 1 ] && sudo sed -i -e 's^bootstrap_expect =.*$^^' $NOMAD_HCL
+  [ $FIRST != $FQDN ] && sudo sed -i -e 's^bootstrap_expect =.*$^^' $NOMAD_HCL
 
 
   # restart and give a few seconds to ensure server responds
@@ -408,7 +293,7 @@ function setup-nomad {
 function nomad-addr-and-token() {
   # sets NOMAD_ADDR and NOMAD_TOKEN
   CONF=$HOME/.config/nomad
-  if [ "$COUNT" = "0" ]; then
+  if [ $FIRST = $FQDN ]; then
     # First VM -- bootstrap the entire nomad cluster
     # If you already have a .config/nomad file -- copy it to a `.prev` file.
     [ -e $CONF ]  &&  mv $CONF $CONF.prev
