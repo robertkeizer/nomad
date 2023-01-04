@@ -16,33 +16,39 @@ function usage() {
 Usage: setup.sh   <node 1>  <node 2>  ..
 
 ----------------------------------------------------------------------------------------------------
+Creates a nomad cluster on debian/ubuntu VMs/baremetals.
+
+- Installs 'nomad'  server and client on all nodes, securely talking together & electing a leader
+- Installs 'consul' server and client on all nodes
+- Installs 'caddy' load balancer on all nodes
+    (in case you want to use multiple IP addresses for deployments in case one LB/node is out)
+
+Requires that you have ssh and sudo access to each of the node names you pass in.
+
+----------------------------------------------------------------------------------------------------
 Make your first node be a FULLY-QUALIFIED DOMAIN NAME
-  (and the one you'd like to use in urls if your machine has multiple names)
+  (and the  \`hostname -f\`  if your machine has multiple names)
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
 
-We'll use lets encrypt generated certs that we'll create via \`caddy\`.
+Internally, the cluster will setup & use lets encrypt generated certs (created via \`caddy\`).
 xxx: after 90 days you may need restart/reload nomad.
 
 If invoking cmd-line has env var:
   NFSHOME=1                     -- then we'll setup /home/ r/o and r/w mounts
   NFS_PV=[IP ADDRESS:MOUNT_DIR] -- then we'll setup each VM with /pv mounting your NFS server for
-                                   Persistent Volumes.  Example value: 1.1.1.1:/mnt/exports
+                                   Persistent Volumes.
+  Example:
+    FS_PV=1.1.1.1:/mnt/exports  ./setup.sh  vm1.example.com  vm2.example.com
+
 
 ----------------------------------------------------------------------------------------------------
-Assumes you are creating cluster with debian/ubuntu VMs/baremetals,
-that you have ssh and sudo access to.
-
-Overview:
-  Installs 'nomad'  server and client on all nodes, securely talking together & electing a leader
-  Installs 'consul' server and client on all nodes
-  Installs 'caddy' load balancer on all nodes
-     (in case you want to use multiple IP addresses for deployments in case one LB/node is out)
-
-----------------------------------------------------------------------------------------------------
-NOTE: if setup 3 nodes (h0, h1 & h2) on day 1; and want to add 2 more (h3 & h4) later,
-you should manually change a lines in \`setup-env-vars()\` in script -- look for FIRST=
-
+NOTE: if you setup a 2 node (vm1, vm2) cluster on day 1; and want to add 2 more (vm3 & vm4) later,
+you should rerun this script with just the new node names
+*AND* use any of the same optional NFS* env vars used initially
+*AND* set env var \`FIRST=\` to the fully-qualified first hostname used orginally.
+Example:
+  FIRST=vm1.example.com  NFSHOME=1  ./setup.sh  vm3.example.com  vm4.example.com
 "
   exit 1
 }
@@ -54,10 +60,7 @@ function main() {
 
   typeset -a NODES # array type env variable
 
-  if [ "$1" = "setup-env-vars" ]; then
-    setup-env-vars "$@"
-
-  elif [ "$#" -gt 1 ]; then
+  if [ "$#" -gt 1 ]; then
     # This is where the script starts
     set -x
 
@@ -68,12 +71,25 @@ function main() {
       ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad;  cd /nomad  &&  sudo git pull"
     done
 
+
+    # Setup environment vars -- write needed environment variables to a file on each node.
+
+    # If script invoker is adding additional nodes to previously existing cluster, they
+    # need to have set FIRST environment variable in invoking CLI shell.  In that case, use it.
+    # Otherwise, we are setting up a new cluster and we'll use the first node.
+    [ -z $FIRST ]  &&  FIRST=$NODES[1]
+
+    NFSHOME=${NFSHOME:-""}
+    NFS_PV="${NFS_PV:-""}"
+    for NODE in $NODES; do
+      ssh $NODE "echo '  export FIRST=$FIRST\n  export NFSHOME=$NFSHOME\n  export NFS_PV=$NFS_PV' | sudo tee /nomad/setup.env"
+    done
+
+
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
     # Run setups across all VMs.
     # https://learn.hashicorp.com/tutorials/nomad/clustering#use-consul-to-automatically-cluster-nodes
     for NODE in $NODES; do
-      # setup environment vars, then run installer
-      ssh $NODE  /nomad/setup.sh  setup-env-vars  "$@"
       ssh $NODE  /nomad/setup.sh  setup-consul-caddy-misc
     done
 
@@ -103,44 +119,20 @@ function main() {
 }
 
 
-function setup-env-vars() {
-  # sets up environment variables into a tmp file and then sources it
-  set -x
-
-  # number of args from the command line are all the hostnames to setup
-  shift
-  NODES=( "$@" )
-
-
-  # If you later add nodes to an existing cluster,
-  # *MANUALLY* set FIRST here to hostname of your existing cluster's first VM.
-  FIRST=$NODES[1]
-
-
-  # write all our needed environment variables to a file
-  (
-    echo export  NOMAD_ADDR="https://$FIRST"
-    echo export CONSUL_ADDR="http://localhost:8500"
-
-    echo export LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
-
-    echo export FIRST=$FIRST
-    echo export FQDN=$(hostname -f)
-    echo export NFSHOME=${NFSHOME:-""}
-    echo export NFS_PV="${NFS_PV:-""}"
-  ) | sort | sudo tee /nomad/setup.env
-
-  source /nomad/setup.env
-}
-
-
 function load-env-vars() {
   # avoid any potentially previously set external environment vars from CLI poisoning..
   unset   NOMAD_TOKEN
   unset   NOMAD_ADDR
 
-  # loads environment variables that `setup-env-vars` previously setup
+  # loads environment variables that were previously setup
   source /nomad/setup.env
+
+  export  NOMAD_ADDR="https://$FIRST"
+  export CONSUL_ADDR="http://localhost:8500"
+
+  export FQDN=$(hostname -f)
+
+  export LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
 
   set -x
 }
