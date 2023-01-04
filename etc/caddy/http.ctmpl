@@ -1,8 +1,8 @@
 
 # start off with nice, easy way to get to nomad
 
-{{ env "HOSTNAME" }} {
-  reverse_proxy https://{{ env "HOSTNAME" }}:4646
+{{ env "FQDN" }} {
+  reverse_proxy https://{{ env "FQDN" }}:4646
   tls {
     on_demand
   }

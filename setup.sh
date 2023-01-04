@@ -26,8 +26,8 @@ Creates a nomad cluster on debian/ubuntu VMs/baremetals.
 Requires that you have ssh and sudo access to each of the node names you pass in.
 
 ----------------------------------------------------------------------------------------------------
-Make your first node be a FULLY-QUALIFIED DOMAIN NAME
-  (and the  \`hostname -f\`  if your machine has multiple names)
+Make all your nodes be FULLY-QUALIFIED DOMAIN NAMES
+  (and the desired addressable url hostname if your machine has multiple names).
 
 Run this script on a mac/linux laptop or VM where you can ssh in to all of your nodes.
 
@@ -77,14 +77,22 @@ function main() {
     # If script invoker is adding additional nodes to previously existing cluster, they
     # need to have set FIRST environment variable in invoking CLI shell.  In that case, use it.
     # Otherwise, we are setting up a new cluster and we'll use the first node.
+    set +u
     [ -z $FIRST ]  &&  FIRST=$NODES[1]
+    set -u
 
     NFSHOME=${NFSHOME:-""}
     NFS_PV="${NFS_PV:-""}"
+    LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
     for NODE in $NODES; do
-      ssh $NODE "echo '  export FIRST=$FIRST\n  export NFSHOME=$NFSHOME\n  export NFS_PV=$NFS_PV' | sudo tee /nomad/setup.env"
+      ssh $NODE "echo '
+export FIRST=$FIRST
+export FQDN=$NODE
+export NFSHOME=$NFSHOME
+export NFS_PV=$NFS_PV
+export LETSENCRYPT_DIR=$LETSENCRYPT_DIR
+      ' | sudo tee /nomad/setup.env"
     done
-
 
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
     # Run setups across all VMs.
@@ -129,10 +137,6 @@ function load-env-vars() {
 
   export  NOMAD_ADDR="https://$FIRST"
   export CONSUL_ADDR="http://localhost:8500"
-
-  export FQDN=$(hostname -f)
-
-  export LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
 
   set -x
 }
@@ -338,7 +342,7 @@ function setup-consul-caddy-misc() {
   sudo chmod +x  /usr/bin/caddy-plus-tcp
 
   (
-    echo HOSTNAME=$FQDN
+    echo FQDN=$FQDN
     echo TCP_DOMAIN=dev.archive.org # xxx
   ) |sudo tee /etc/caddy/env
 }

@@ -7,7 +7,7 @@ trap "{ sleep 25 }" EXIT
 
 source /etc/caddy/env
 
-export HOSTNAME=${HOSTNAME?}
+export FQDN=${FQDN?}
 export TCP_DOMAIN=${TCP_DOMAIN?}
 export TRUSTED_PROXIES=${TRUSTED_PROXIES:="private_ranges"}
 
