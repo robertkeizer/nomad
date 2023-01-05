@@ -8,9 +8,9 @@
 {{ range services }}
 	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
 		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
-        "{{ .Name }}.{{ env "TCP_DOMAIN" }}": {
+        "{{ .Name | regexReplaceAll "\-tcp$" "" }}.{{ env "TCP_DOMAIN" }}": {
           "listen": [
-            "{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" | regexReplaceAll " proto=tcp" "" }}"
+            "0.0.0.0{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" | regexReplaceAll " proto=tcp" "" }}"
           ],
           "routes": [
             {
