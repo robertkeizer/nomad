@@ -66,6 +66,13 @@ function main() {
 
     # number of args from the command line are all the hostnames to setup
     NODES=( "$@" )
+    # If script invoker is adding additional nodes to previously existing cluster, they need
+    # to have set FIRST environment variable in the invoking CLI shell.  In that case, use it.
+    # Otherwise, we are setting up a new cluster and we'll use the first node in the passed in list.
+    set +u
+    [ -z $FIRST ]  &&  FIRST=$NODES[1]
+    set -u
+
 
     for NODE in $NODES; do
       ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad;  cd /nomad  &&  sudo git pull"
@@ -73,14 +80,6 @@ function main() {
 
 
     # Setup environment vars -- write needed environment variables to a file on each node.
-
-    # If script invoker is adding additional nodes to previously existing cluster, they
-    # need to have set FIRST environment variable in invoking CLI shell.  In that case, use it.
-    # Otherwise, we are setting up a new cluster and we'll use the first node.
-    set +u
-    [ -z $FIRST ]  &&  FIRST=$NODES[1]
-    set -u
-
     NFSHOME=${NFSHOME:-""}
     NFS_PV="${NFS_PV:-""}"
     LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
