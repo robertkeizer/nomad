@@ -11,12 +11,9 @@ export FQDN=${FQDN?}
 export TCP_DOMAIN=${TCP_DOMAIN?}
 export TRUSTED_PROXIES=${TRUSTED_PROXIES:="private_ranges"}
 
+
 # wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
 
-
-
-# xxx http.ctmpl needs to handle http only ports
-# xxx telnet services-scribe-c2.code.archive.org 7777  # TCP
 
 cd /etc/caddy
 touch tmp.cad
