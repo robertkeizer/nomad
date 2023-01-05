@@ -20,7 +20,7 @@ for i in $(nomad node status |fgrep -v Eligibility |tr -s ' ' |cut -f1,3 -d' ' |
     ( echo $IMG | fgrep brenton-devops )  &&  continue # had persistent issues, move on..
 
     set -x
-    ssh $node sudo docker push $IMG
+    ssh $node sudo docker push $IMG  ||  echo FAIL $node $IMG
     set +x
   done
 done

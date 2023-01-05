@@ -454,6 +454,15 @@ wget -qO- localhost:2019/config/ | jq .
 # Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
 - xxx [jammy] Removed local sysctl setting of vm.dirty_bytes in favor of recent kernels’ writeback rate throttle per andy
+- `docker push` repeated fails?
+[Try](https://dzone.com/articles/tcp-out-of-memory-consider-tuning-tcp-mem
+):
+```
+sysctl net.core.netdev_max_backlog=30000
+sysctl net.core.rmem_max=134217728
+sysctl net.core.wmem_max=134217728
+```
+
 
 ## Revisit in future if ever desired again
 ```yml
