@@ -37,14 +37,17 @@
               ]
             }
           ]
-        }
+        },
 
 
 		{{ end }}
 	{{ end }}
 {{ end }}
 
-
+        "{{ env "FQDN" }}": {
+          "listen": [ ":111" ],
+          "routes": [{ "handle": [{ "handler": "echo" }]}]
+        }
       }
     }
   }
