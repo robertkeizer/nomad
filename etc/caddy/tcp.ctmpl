@@ -45,7 +45,7 @@
 {{ end }}
 
         "{{ env "FQDN" }}": {
-          "listen": [ "0.0.0.0:111" ],
+          "listen": [ "0.0.0.0:3862" ],
           "routes": [{ "handle": [{ "handler": "echo" }]}]
         }
       }
