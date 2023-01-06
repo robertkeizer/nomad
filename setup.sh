@@ -66,13 +66,13 @@ function main() {
 
     # number of args from the command line are all the hostnames to setup
     NODES=( "$@" )
+    COUNT=$#
     # If script invoker is adding additional nodes to previously existing cluster, they need
     # to have set FIRST environment variable in the invoking CLI shell.  In that case, use it.
     # Otherwise, we are setting up a new cluster and we'll use the first node in the passed in list.
     set +u
     [ -z $FIRST ]  &&  FIRST=$NODES[1]
     set -u
-
 
     for NODE in $NODES; do
       ssh $NODE "sudo apt-get -yqq install git  &&  sudo git clone $REPO /nomad;  cd /nomad  &&  sudo git pull"
@@ -87,6 +87,7 @@ function main() {
       ssh $NODE "echo '
 export FIRST=$FIRST
 export FQDN=$NODE
+export COUNT=$COUNT
 export NFSHOME=$NFSHOME
 export NFS_PV=$NFS_PV
 export LETSENCRYPT_DIR=$LETSENCRYPT_DIR
@@ -197,7 +198,7 @@ function setup-consul() {
 server = true
 advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
 node_name = "'$(hostname -s)'"
-bootstrap_expect = '$CONSUL_COUNT'
+bootstrap_expect = '$COUNT'
 encrypt = "'$TOK_C'"
 retry_join = ["'$FIRSTIP'"]
 ' | sudo tee -a  $CONSUL_HCL
@@ -265,7 +266,7 @@ function setup-nomad {
 
 
   # restart and give a few seconds to ensure server responds
-  sudo systemctl restart nomad  &&  sleep 10
+  sudo systemctl restart nomad  ||  echo 'look into start -v- restart?'  &&  sleep 10
 
   # NOTE: if you see failures join-ing and messages like:
   #   "No installed keys could decrypt the message"
@@ -332,7 +333,7 @@ function setup-consul-caddy-misc() {
   sudo chown caddy /var/lib/caddy
 
   for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
-    sudo ln -s /nomad/etc/caddy/$i /etc/caddy/$i
+    sudo ln -sf /nomad/etc/caddy/$i /etc/caddy/$i
   done
 
 
