@@ -33,8 +33,8 @@ function main() {
 
   # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
-    if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://nom.us.archive.org:4646
-    elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.us.archive.org:4646
+    if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://nom.archive.org
+    elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.archive.org
     elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
     elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
     fi
