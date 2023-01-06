@@ -5,14 +5,9 @@
 trap "{ sleep 25 }" EXIT
 
 
-source /etc/caddy/env
-
-export FQDN=${FQDN?}
-export TCP_DOMAIN=${TCP_DOMAIN?}
-export TRUSTED_PROXIES=${TRUSTED_PROXIES:="private_ranges"}
-
-
-# wget -qO- 'http://127.0.0.1:8500/v1/catalog/services' |jq .
+set -o allexport
+source /nomad/setup.env
+set +o allexport
 
 
 cd /etc/caddy

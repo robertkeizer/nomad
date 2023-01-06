@@ -38,6 +38,9 @@ If invoking cmd-line has env var:
   NFSHOME=1                     -- then we'll setup /home/ r/o and r/w mounts
   NFS_PV=[IP ADDRESS:MOUNT_DIR] -- then we'll setup each VM with /pv mounting your NFS server for
                                    Persistent Volumes.
+  TRUSTED_PROXIES=[CIDR IP RANGE] -- to optionally allow certain 'X-Forwarded-*' headers,
+                                     otherwise defaults to 'private_ranges'.  See:
+                    https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#trusted_proxies
   Example:
     FS_PV=1.1.1.1:/mnt/exports  ./setup.sh  vm1.example.com  vm2.example.com
 
@@ -82,15 +85,18 @@ function main() {
     # Setup environment vars -- write needed environment variables to a file on each node.
     NFSHOME=${NFSHOME:-""}
     NFS_PV="${NFS_PV:-""}"
+    TRUSTED_PROXIES=${TRUSTED_PROXIES:="private_ranges"}
+
     LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
     for NODE in $NODES; do
       ssh $NODE "echo '
-export FIRST=$FIRST
-export FQDN=$NODE
-export COUNT=$COUNT
-export NFSHOME=$NFSHOME
-export NFS_PV=$NFS_PV
-export LETSENCRYPT_DIR=$LETSENCRYPT_DIR
+FIRST=$FIRST
+FQDN=$NODE
+COUNT=$COUNT
+NFSHOME=$NFSHOME
+NFS_PV=$NFS_PV
+LETSENCRYPT_DIR=$LETSENCRYPT_DIR
+TRUSTED_PROXIES=$TRUSTED_PROXIES
       ' | sudo tee /nomad/setup.env"
     done
 
@@ -133,7 +139,9 @@ function load-env-vars() {
   unset   NOMAD_ADDR
 
   # loads environment variables that were previously setup
+  set -o allexport
   source /nomad/setup.env
+  set +o allexport
 
   export  NOMAD_ADDR="https://$FIRST"
 
@@ -200,6 +208,7 @@ node_name = "'$(hostname -s)'"
 bootstrap_expect = '$COUNT'
 encrypt = "'$TOK_C'"
 retry_join = ["'$FIRSTIP'"]
+ui_config { enabled = true }
 ' | sudo tee -a  $CONSUL_HCL
 
   # restart and give a few seconds to ensure server responds
@@ -342,7 +351,6 @@ function setup-consul-caddy-misc() {
 
   (
     echo FQDN=$FQDN
-    echo TCP_DOMAIN=dev.archive.org # xxx
   ) |sudo tee /etc/caddy/env
 }
 

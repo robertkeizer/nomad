@@ -1,6 +1,8 @@
 #!/bin/zsh -eu
 
+set -o allexport
 source /nomad/setup.env
+set +o allexport
 
 
 LE_CRT=$LETSENCRYPT_DIR/$FQDN/$FQDN.crt
