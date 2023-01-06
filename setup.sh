@@ -136,7 +136,6 @@ function load-env-vars() {
   source /nomad/setup.env
 
   export  NOMAD_ADDR="https://$FIRST"
-  export CONSUL_ADDR="http://localhost:8500"
 
   set -x
 }
@@ -475,7 +474,7 @@ $NOMAD_ADDR
 
 Consul (networking: service discovery & health checks, service mesh, envoy, secrets storage):
 ( https://www.consul.io )
-$CONSUL_ADDR
+http://localhost:8500  (use nom-tunnel or similar to get to consul this way)
 
 Caddy  (routing: load balancing, ingress router, https and http2 termination (to http))
 ( https://caddyserver.com/ )
