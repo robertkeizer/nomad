@@ -15,6 +15,12 @@
           "routes": [
             {
               "handle": [
+                {{ if .Name | regexMatch "www-ci-tcp" }}
+                {{ else }}
+                  {
+                    "handler": "tls"
+                  },
+                {{ end }}
                 {
                   "handler": "proxy",
                   "proxy_protocol": "v2",
