@@ -201,7 +201,7 @@ job "NOMAD_VAR_SLUG" {
           canary = var.COUNT_CANARIES
           auto_promote  = local.auto_promote[0]
           min_healthy_time  = "30s"
-          healthy_deadline  = "5m"
+          healthy_deadline  = "10m"
           progress_deadline = "10m"
           auto_revert   = true
         }
@@ -482,7 +482,7 @@ job "NOMAD_VAR_SLUG" {
       max_parallel = 3
       health_check = "checks"
       min_healthy_time = "15s"
-      healthy_deadline = "5m"
+      healthy_deadline = "10m"
     }
   }
 
