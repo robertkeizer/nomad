@@ -202,7 +202,7 @@ job "NOMAD_VAR_SLUG" {
           auto_promote  = local.auto_promote[0]
           min_healthy_time  = "30s"
           healthy_deadline  = "10m"
-          progress_deadline = "7m"
+          progress_deadline = "11m"
           auto_revert   = true
         }
       }
