@@ -348,6 +348,8 @@ We have a [postgresql example](https://git.archive.org/www/dwebcamp2019), visibl
 
 _Keep in mind if you setup something like a database in a container, using a Persistent Volume (like below) you can get multiple containers each trying to write to your database backing store filesystem (one for production; one temporarily for production re-deploy "canary"; and similar 1 or 2 for every deployed branch (which is probably not what you want).  So you might want to look into `NOMAD_VAR_COUNT` and `NOMAD_VAR_COUNT_CANARIES` in that case._
 
+It's recommended to run the DB container during the prestart hook as a "sidecar" service (this will cause it to finish starting before any other group tasks initialize, avoiding service start failures due to unavailable DB, see [nomad task dependencies](https://www.hashicorp.com/blog/hashicorp-nomad-task-dependencies) for more info)
+
 `.gitlab-ci.yml`:
 ```yaml
 variables:
@@ -373,6 +375,10 @@ variable "POSTGRESQL_PASSWORD" {
 ```ini
 task "NOMAD_VAR_SLUG-db" {
   driver = "docker"
+  lifecycle {
+    sidecar = true
+    hook = "prestart"
+  }
   config {
     image = "docker.io/bitnami/postgresql:11.7.0-debian-10-r9"
     ports = ["db"]
