@@ -128,7 +128,7 @@ function nom-cp() {
   if [ "$JOB" = ""  -o  "$ALLOC" = "" ]; then
     # no relevant job & alloc found - nothing to do
     echo 'has this branch run a full pipeline and deployed a Review App yet?'
-    exit 0
+    return
   fi
 
   cat "$FILE" | ( set -x; nomad alloc exec -i -task $TASK "$ALLOC" sh -c "cat >| '$REST'" )
@@ -161,11 +161,11 @@ function nom-status() {
   line
   echo "nomad status $JOB"
   line
-        nomad status $JOB
+        nomad status $JOB | grep --color=always -iE 'unhealthy|healthy|$'
   line
   echo 'nomad alloc status -stats $(nom-job-to-alloc '$JOB')'
   line
-        nomad alloc status -stats $(nom-job-to-alloc $JOB)
+        nomad alloc status -stats $(nom-job-to-alloc $JOB) | grep --color=always -iE 'unhealthy|healthy|Job Version.*|Node Name.*|$'
   line
 }
 
