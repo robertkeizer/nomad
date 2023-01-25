@@ -8,6 +8,8 @@
 {{ range services }}
 	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
 		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
+      {{ if .Name | regexMatch "scribe-c2" }}
+      {{ else }}
         "{{ .Name }}": {
           "listen": [
             "0.0.0.0{{ .Tags | join "," | regexReplaceAll "^urlprefix-" "" | regexReplaceAll "/$" "" | regexReplaceAll " proto=tcp" "" }}"
@@ -46,6 +48,7 @@
         },
 
 
+  		{{ end }}
 		{{ end }}
 	{{ end }}
 {{ end }}
