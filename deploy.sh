@@ -35,8 +35,8 @@ function main() {
   if [ "$NOMAD_ADDR" = "" ]; then
     if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://nom.archive.org
     elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.archive.org
-    elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
-    elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nom.ux.archive.org
+    elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
+    elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
     fi
   fi
 
@@ -51,7 +51,7 @@ function main() {
     # some archive.org specific production deployment detection & var updates first
     PROD_IA=
     if [ "$CI_COMMIT_REF_SLUG" = "production" ]; then
-      if [[ "$NOMAD_ADDR" == *.archive.org:* ]]; then
+      if [[ "$NOMAD_ADDR" == *.archive.org ]]; then
         PROD_IA=1
       fi
     fi
