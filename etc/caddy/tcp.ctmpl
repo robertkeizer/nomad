@@ -8,7 +8,7 @@
 {{ range services }}
 	{{ if  .Tags | join "," | regexMatch "urlprefix-" }}
 		{{ if  .Tags | join "," | regexMatch "proto=tcp" }}
-      {{ if .Name | regexMatch "scribe-c2" }}
+      {{ if .Name | regexMatch "scribe-c2-xxx" }}
       {{ else }}
         "{{ .Name }}": {
           "listen": [
@@ -25,7 +25,6 @@
                 {{ end }}
                 {
                   "handler": "proxy",
-                  "proxy_protocol": "v2",
                   "upstreams": [
                     {
                       "dial": [
