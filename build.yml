@@ -35,6 +35,7 @@ build:
         # built image *after* [test] phase runs successfully (since that's our logical deploy)
         echo "dont tag/push to :latest now -- save for [deploy-serverless] job"
         sed -i 's/docker push .*image_latest.*//' /build/build.sh
+        sed -i      's/\-\-tag ..image_latest.//' /build/build.sh
         grep docker /build/build.sh | fgrep push
       fi
       # INTERNET ARCHIVE CUSTOMIZATION --^^^^
