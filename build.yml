@@ -30,7 +30,7 @@ build:
 
       # INTERNET ARCHIVE CUSTOMIZATION --vvvv
 
-      echo CI_RUNNER_ID=$CI_RUNNER_ID
+      env |fgrep CI_RUNNER
       echo NOMAD_VAR_SERVERLESS=$NOMAD_VAR_SERVERLESS
 
       if [ "$NOMAD_VAR_SERVERLESS" != "" ]; then
