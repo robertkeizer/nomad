@@ -61,7 +61,7 @@ deploy-serverless:
 
         # this filters stderr of `docker login`, w/o merging stdout & stderr together
         set +x
-        { echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY" 2>&1 1>&3 | filter_docker_warning 1>&2; } 3>&1
+        { echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY" 2>&1 1>&3 | ( grep -E -v "^WARNING! Your password will be stored unencrypted in |^Configure a credential helper to remove this warning. See|^https://docs.docker.com/engine/reference/commandline/login/#credentials-store" || true ) 1>&2; } 3>&1
       fi
 
       set -x
