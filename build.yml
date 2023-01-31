@@ -29,6 +29,10 @@ build:
       fi
 
       # INTERNET ARCHIVE CUSTOMIZATION --vvvv
+
+      echo CI_RUNNER_ID=$CI_RUNNER_ID
+      echo NOMAD_VAR_SERVERLESS=$NOMAD_VAR_SERVERLESS
+
       if [ "$NOMAD_VAR_SERVERLESS" != "" ]; then
         # For IA SERVERLESS CI/CD pipelines, we only want to make (2nd) tag of `:latest` for our
         # built image *after* [test] phase runs successfully (since that's our logical deploy)
