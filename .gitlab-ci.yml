@@ -52,7 +52,8 @@ deploy:
 
 deploy-serverless:
   stage: deploy
-  image: something-with-docker-xxx
+  # NOTE: we just need something w/ `docker` cli in it -- use same image we use for [build]
+  image: registry.gitlab.com/internetarchive/auto-build-image/main:latest
   script:
     - |
       if [[ -n "$CI_REGISTRY" && -n "$CI_REGISTRY_USER" ]]; then
