@@ -33,7 +33,9 @@ build:
       if [ "$NOMAD_VAR_SERVERLESS" != "" ]; then
         # For IA SERVERLESS CI/CD pipelines, we only want to make (2nd) tag of `:latest` for our
         # built image *after* [test] phase runs successfully (since that's our logical deploy)
+        echo "dont tag/push to :latest now -- save for [deploy-serverless] job"
         sed -i 's/docker push .*image_latest.*//' /build/build.sh
+        grep docker /build/build.sh | fgrep push
       fi
       # INTERNET ARCHIVE CUSTOMIZATION --^^^^
 
