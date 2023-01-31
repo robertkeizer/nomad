@@ -69,6 +69,7 @@ NOMAD_VAR_NETWORK_MODE
 NOMAD_VAR_NO_DEPLOY
 NOMAD_VAR_PERSISTENT_VOLUME
 NOMAD_VAR_PORTS
+NOMAD_VAR_SERVERLESS
 ```
 - See the top of [project.nomad](project.nomad)
 - Our customizations always prefix with `NOMAD_VAR_`.

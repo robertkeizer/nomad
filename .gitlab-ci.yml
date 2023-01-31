@@ -50,6 +50,31 @@ deploy:
       when: never
     - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
 
+deploy-serverless:
+  stage: deploy
+  image: something-with-docker-xxx
+  script:
+    - |
+      if [[ -n "$CI_REGISTRY" && -n "$CI_REGISTRY_USER" ]]; then
+        echo "Logging in to GitLab Container Registry with CI credentials..."
+
+        # this filters stderr of `docker login`, w/o merging stdout & stderr together
+        set +x
+        { echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY" 2>&1 1>&3 | filter_docker_warning 1>&2; } 3>&1
+      fi
+
+      set -x
+      image_tagged="$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
+      image_latest="$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:latest"
+      docker tag  $image_tagged $image_latest
+      docker push $image_latest
+  rules:
+    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH && $NOMAD_VAR_SERVERLESS'
+
 
 stop_review:
   # See:

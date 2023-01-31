@@ -27,6 +27,14 @@ build:
         export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
         export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
       fi
+
+      # INTERNET ARCHIVE CUSTOMIZATION --vvvv
+      if [ "$NOMAD_VAR_SERVERLESS" != "" ]; then
+        # For IA SERVERLESS CI/CD pipelines, we only want to make (2nd) tag of `:latest` for our
+        # built image *after* [test] phase runs successfully (since that's our logical deploy)
+        sed -i 's/docker push .*image_latest.*//' /build/build.sh
+      fi
+      # INTERNET ARCHIVE CUSTOMIZATION --^^^^
     - /build/build.sh
   artifacts:
     reports:
