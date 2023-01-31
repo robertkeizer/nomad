@@ -30,6 +30,10 @@ build:
 
       # INTERNET ARCHIVE CUSTOMIZATION --vvvv
       # if $CI_RUNNER_DESCRIPTION starts w/ "io", could avoid DinD ^ (but cant conditionalize service)
+
+      echo NOMAD_VAR_SERVERLESS=$NOMAD_VAR_SERVERLESS
+      env | grep -c NOMAD_VAR_ || echo hmm
+
       if [ "$NOMAD_VAR_SERVERLESS" != "" ]; then
         # For IA SERVERLESS CI/CD pipelines, we only want to make (2nd) tag of `:latest` for our
         # built image *after* [test] phase runs successfully (since that's our logical deploy)
