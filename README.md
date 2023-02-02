@@ -525,3 +525,31 @@ gitlab-runner start
   - eg: `Strict-Transport-Security: max-age=15724800; includeSubdomains`
 - [workaround via deploy token] _sometimes_ `docker pull` was failing on deploy...
   - https://docs.gitlab.com/ee/user/project/deploy_tokens/index.html#gitlab-deploy-token
+
+# To Do
+- update off of the final 2 `apt-key` usages since it's deprecated (xxx)
+
+
+# Constraints
+In the past, we've made it so certain jobs are "constrained" to run on specifc 1+ cluster VM.
+
+Here's how you can do it:
+You can manually add this to 1+ VM `/etc/nomad/nomad.hcl` file:
+```ini
+client {
+  meta {
+    "kind" = "tcp-vm"
+  }
+}
+```
+
+You can add this as a new file named `job.nomad` in the top of a project/repo:
+```ini
+constraint {
+  attribute = "${meta.kind}"
+  operator = "set_contains"
+  value = "tcp-vm"
+}
+```
+
+Then deploys for this repo will *only* deploy to your specific VMs.
