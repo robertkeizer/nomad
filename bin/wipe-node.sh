@@ -38,7 +38,7 @@ systemctl daemon-reload
 
 rm -fv /etc/ferm/*/nomad.conf  /etc/dnsmasq.d/nomad
 
-rm -fv /tmp/setup.env  /tmp/setup.sh
+rm -fv /nomad/
 
 service ferm reload
 

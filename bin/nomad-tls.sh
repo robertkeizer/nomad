@@ -1,7 +1,7 @@
 #!/bin/zsh -eu
 
 set -o allexport
-source /nomad/setup.env
+source /etc/caddy/env
 set +o allexport
 
 

@@ -7,7 +7,7 @@ After=network-online.target consul.service
 Restart=on-failure
 EnvironmentFile=-/etc/caddy/env
 WorkingDirectory=/etc/caddy
-ExecStart=/usr/bin/consul-template -template "Caddyfile.ctmpl:Caddyfile.basic:bash -c './build.sh || true'"
+ExecStart=/usr/bin/consul-template -template "Caddyfile.ctmpl:Caddyfile:bash -c '/usr/bin/caddy reload || true'"
 
 [Install]
 WantedBy=multi-user.target

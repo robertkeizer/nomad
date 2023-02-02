@@ -41,6 +41,12 @@ If invoking cmd-line has env var:
   TRUSTED_PROXIES=[CIDR IP RANGE] -- to optionally allow certain 'X-Forwarded-*' headers,
                                      otherwise defaults to 'private_ranges'.  See:
                     https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#trusted_proxies
+  UNKNOWN_SERVICE_404=[URL]     -- url to auto-redirect to for unknown service hostnames,
+                                   defaults to: https://archive.org/about/404.html
+  NOMAD_ADDR_EXTRA=[HOSTNAME]   -- if you have an extra, nicer hostname you'd like to use for your
+                                   NOMAD_ADDR, pass in a hostname for us to set that up.
+
+
   Example:
     FS_PV=1.1.1.1:/mnt/exports  ./setup.sh  vm1.example.com  vm2.example.com
 
@@ -86,6 +92,8 @@ function main() {
     NFSHOME=${NFSHOME:-""}
     NFS_PV="${NFS_PV:-""}"
     TRUSTED_PROXIES=${TRUSTED_PROXIES:="private_ranges"}
+    UNKNOWN_SERVICE_404="${UNKNOWN_SERVICE_404:-"https://archive.org/about/404.html"}"
+    NOMAD_ADDR_EXTRA="${NOMAD_ADDR_EXTRA:-""}"
 
     LETSENCRYPT_DIR="/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
     for NODE in $NODES; do
@@ -97,7 +105,9 @@ NFSHOME=$NFSHOME
 NFS_PV=$NFS_PV
 LETSENCRYPT_DIR=$LETSENCRYPT_DIR
 TRUSTED_PROXIES=$TRUSTED_PROXIES
-      ' | sudo tee /nomad/setup.env"
+UNKNOWN_SERVICE_404=$UNKNOWN_SERVICE_404
+NOMAD_ADDR_EXTRA=$NOMAD_ADDR_EXTRA
+      ' | sudo tee /etc/caddy/env"
     done
 
     # Setup certs & get consul up & running *first* -- so can use consul for nomad bootstraping.
@@ -140,7 +150,7 @@ function load-env-vars() {
 
   # loads environment variables that were previously setup
   set -o allexport
-  source /nomad/setup.env
+  source /etc/caddy/env
   set +o allexport
 
   export  NOMAD_ADDR="https://$FIRST"
@@ -326,7 +336,7 @@ function setup-consul-caddy-misc() {
 
   setup-consul-and-misc
 
-  sudo apt-get -yqq install  consul-template  jq
+  sudo apt-get -yqq install  consul-template  jq  cron
 
   # https://caddyserver.com/docs/install#debian-ubuntu-raspbian
   sudo apt install -yqq debian-keyring debian-archive-keyring apt-transport-https
@@ -343,15 +353,6 @@ function setup-consul-caddy-misc() {
   for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
     sudo ln -sf /nomad/etc/caddy/$i /etc/caddy/$i
   done
-
-
-  # get a compiled `caddy` binary that has plugin with additional raw TCP ability built-in
-  sudo wget -qO  /usr/bin/caddy-plus-tcp  https://archive.org/download/nginx/caddy-plus-tcp
-  sudo chmod +x  /usr/bin/caddy-plus-tcp
-
-  (
-    echo FQDN=$FQDN
-  ) |sudo tee /etc/caddy/env
 }
 
 function setup-certs() {
@@ -363,11 +364,6 @@ function setup-certs() {
   # now that consul is clustered and happy, we can customize `consul-template` and `caddy`
   sudo cp /nomad/etc/systemd/system/consul-template.service  /etc/systemd/system/
 
-
-  sudo perl -i \
-   -pe 's=bin/caddy([^-])=bin/caddy-plus-tcp$1=;' \
-   -pe 's=/etc/caddy/Caddyfile([^\.])=/etc/caddy/Caddyfile.json$1=;' \
-   /lib/systemd/system/caddy.service
 
   fgrep Restart=always /lib/systemd/system/caddy.service ||
     sudo perl -i -pe 's/\[Service\]/[Service]\nRestart=always/' /lib/systemd/system/caddy.service
@@ -398,6 +394,8 @@ function setup-certs() {
   sudo mkdir -m 500 -p        /opt/nomad/tls
   sudo chmod -R go-rwx        /opt/nomad/tls
   /nomad/bin/nomad-tls.sh
+
+  echo "SHELL=/bin/bash\n@daily root /nomad/bin/nomad-tls.sh" | sudo tee /etc/cron.d/nomad
 }
 
 function setup-misc() {
