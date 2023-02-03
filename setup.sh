@@ -350,9 +350,7 @@ function setup-consul-caddy-misc() {
   sudo mkdir -p    /var/lib/caddy
   sudo chown caddy /var/lib/caddy
 
-  for i in  http.ctmpl  tcp.ctmpl  Caddyfile.ctmpl  build.sh; do
-    sudo ln -sf /nomad/etc/caddy/$i /etc/caddy/$i
-  done
+  sudo ln -sf /nomad/etc/caddy/Caddyfile.ctmpl /etc/caddy/Caddyfile.ctmpl
 }
 
 function setup-certs() {
