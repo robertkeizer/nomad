@@ -12,16 +12,16 @@ http:// {
 }
 
 
-# start off with nice, easy way to get to nomad
+# start off with nice, easy way(s) to get to nomad
 
-{{ if env "NOMAD_ADDR_EXTRA" }}
-https://{{- env "NOMAD_ADDR_EXTRA" }} {
+{{ range env "NOMAD_ADDR_EXTRA" | split "," }}
+https://{{- . }} {
   reverse_proxy https://{{ env "FQDN" }}:4646
     tls {
       on_demand
     }
 }
-http://{{- env "NOMAD_ADDR_EXTRA" }} {
+http://{{- . }} {
   redir https://{host}{uri} permanent
 }
 {{ end }}

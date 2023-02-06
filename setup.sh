@@ -43,8 +43,8 @@ If invoking cmd-line has env var:
                     https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#trusted_proxies
   UNKNOWN_SERVICE_404=[URL]     -- url to auto-redirect to for unknown service hostnames,
                                    defaults to: https://archive.org/about/404.html
-  NOMAD_ADDR_EXTRA=[HOSTNAME]   -- if you have an extra, nicer hostname you'd like to use for your
-                                   NOMAD_ADDR, pass in a hostname for us to set that up.
+  NOMAD_ADDR_EXTRA=[HOSTNAME]   -- For 1+ extra, nicer https:// hostname(s) you'd like to use to talk
+                                   to nomad, pass in hostname(s) in CSV format for us to setup.
 
 
   Example:
