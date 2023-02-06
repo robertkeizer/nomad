@@ -172,9 +172,12 @@ function setup-consul-and-misc() {
 
 
 function setup-hashicorp() {
-  curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-  ARCH=$(dpkg --print-architecture)
-  sudo apt-add-repository "deb [arch=$ARCH] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+  KEY_HASHI=/usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+  wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o $KEY_HASHI
+  echo "deb [signed-by=$KEY_HASHI] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+    | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
   sudo apt-get -yqq update
 }
 
@@ -449,8 +452,13 @@ function setup-PV() {
 function setup-ctop() {
   # really nice `ctop` - a container monitoring more specialized version of `top`
   # https://github.com/bcicen/ctop
-  echo "deb http://packages.azlux.fr/debian/ buster main" | sudo tee /etc/apt/sources.list.d/azlux.list
-  wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
+
+  curl -fsSL https://azlux.fr/repo.gpg.key \
+    | sudo gpg --dearmor -o /usr/share/keyrings/azlux-archive-keyring.gpg
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian \
+    stable main" | sudo tee /etc/apt/sources.list.d/azlux.list >/dev/null
+
   sudo apt-get -yqq update
   sudo apt-get install -yqq docker-ctop
 }

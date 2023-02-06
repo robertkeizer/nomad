@@ -16,10 +16,13 @@
 MYDIR=${0:a:h}
 
 
-
 # upgrade hashicorp pkgs
-curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+KEY_HASHI=/usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o $KEY_HASHI
+echo "deb [signed-by=$KEY_HASHI] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
 sudo apt-get -yqq update
 
 
@@ -52,11 +55,14 @@ sudo apt-get -yqq install consul-template
 
 apt-cache madison consul-template |head -1
 
-sudo systemctl restart consul-template xxx
+sudo systemctl restart consul-template
 
 
-# upgrade fabio
-sudo docker pull fabiolb/fabio
+# upgrade caddy
+apt-cache madison caddy |head -1
 
-nomad stop fabio
-nomad run $MYDIR/etc/fabio.hcl
+sudo apt-get -yqq install caddy
+
+apt-cache madison caddy |head -1
+
+sudo systemctl restart caddy

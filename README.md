@@ -460,7 +460,6 @@ wget -qO- localhost:2019/config/ | jq .
 
 # Issues / next steps
 - have [deploy] wait for service to be up and marked healthy??
-- xxx [jammy] Removed local sysctl setting of vm.dirty_bytes in favor of recent kernels’ writeback rate throttle per andy
 - `docker push` repeated fails and "running out of memory" deep errors?
 [Try](https://dzone.com/articles/tcp-out-of-memory-consider-tuning-tcp-mem
 ):
@@ -525,9 +524,6 @@ gitlab-runner start
   - eg: `Strict-Transport-Security: max-age=15724800; includeSubdomains`
 - [workaround via deploy token] _sometimes_ `docker pull` was failing on deploy...
   - https://docs.gitlab.com/ee/user/project/deploy_tokens/index.html#gitlab-deploy-token
-
-# To Do
-- update off of the final 2 `apt-key` usages since it's deprecated (xxx)
 
 
 # Constraints

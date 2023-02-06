@@ -7,8 +7,6 @@ for i in $(nomad node status |fgrep -v Eligibility |tr -s ' ' |cut -f1,3 -d' ' |
     id=$(echo $i|cut -f1 -d_)
   node=$(echo $i|cut -f2 -d_)
   for job in $(nomad node status -short $id |fgrep running |tr -s ' ' |cut -f 3 -d ' ' |sort); do
-    [ $job = fabio ] && continue
-
     echo $job
     IMG=$(nomad inspect $job |fgrep -m1 '"image":' |cut -f2- -d: |tr -d '", ' |tr -d ' ')
 
