@@ -48,7 +48,7 @@ http://{{- env "NOMAD_ADDR_EXTRA" }} {
 # Name: {{ $service_name }}
 
     {{ if $tag | regexMatch "proto=tcp" -}}
-# (rare) TCP only ports need to be ignored here -- @see tcp.ctmpl for how they get setup
+# (rare) TCP only ports need to be ignored here
     {{- else -}}
       {{- if $tag | regexMatch "urlprefix-" -}}
         {{- if $tag | regexMatch ":80/ redirect=308" -}}
