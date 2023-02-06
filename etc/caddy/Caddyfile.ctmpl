@@ -74,7 +74,7 @@ http://{{ $host }} {
       header_regexp X-HSTS "off"
     }
   }
-  header  @hsts-on  Strict-Transport-Security  max-age=86400 # xxx increase from 1d
+  header  @hsts-on  Strict-Transport-Security  max-age=15724800
 
   reverse_proxy {{ range $services }} {{ .Address }}:{{ .Port }} {{ end }} {
     lb_policy least_conn
