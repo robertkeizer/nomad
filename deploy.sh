@@ -11,7 +11,25 @@ function main() {
   if [ "$BASE_DOMAIN" = "" ]; then
     BASE_DOMAIN="$KUBE_INGRESS_BASE_DOMAIN"
   fi
+
+  # some archive.org specific production deployment detection & var updates first
+  PROD_IA=
+  if [[ "$BASE_DOMAIN" == *.archive.org ]]; then
+    if [ "$CI_COMMIT_REF_SLUG" = "production"  -o  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
+      PROD_IA=true
+      export BASE_DOMAIN=prod.archive.org
+      if [ "$NOMAD_VAR_COUNT" = "" ]; then
+        export NOMAD_VAR_COUNT=3
+      fi
+      if [ "$NOMAD_TOKEN_PROD" != "" ]; then
+        export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
+        echo using nomad production token
+      fi
+    fi
+  fi
+
   export BASE_DOMAIN
+
 
   PROD_OR_MAIN=
   if [ "$CI_COMMIT_REF_SLUG" = "production" -o "$CI_COMMIT_REF_SLUG" = "main" -o "$CI_COMMIT_REF_SLUG" = "master" ]; then
@@ -38,22 +56,6 @@ function main() {
   # make even nicer names for archive.org processing cluster deploys
   if [ "$BASE_DOMAIN" = "work.archive.org" ]; then
     export HOSTNAME="${CI_PROJECT_NAME}${BRANCH_PART}.${BASE_DOMAIN}"
-  fi
-
-  # some archive.org specific production deployment detection & var updates first
-  PROD_IA=
-  if [[ "$NOMAD_ADDR" == *.archive.org ]]; then
-    if [ "$CI_COMMIT_REF_SLUG" = "production"  -o  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
-      PROD_IA=true
-      export BASE_DOMAIN=prod.archive.org
-      if [ "$NOMAD_VAR_COUNT" = "" ]; then
-        export NOMAD_VAR_COUNT=3
-      fi
-      if [ "$NOMAD_TOKEN_PROD" != "" ]; then
-        export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
-        echo using nomad production token
-      fi
-    fi
   fi
 
   # some archive.org specific production deployment detection & var updates first
