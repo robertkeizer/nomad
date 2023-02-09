@@ -41,6 +41,22 @@ function main() {
   fi
 
   # some archive.org specific production deployment detection & var updates first
+  PROD_IA=
+  if [[ "$NOMAD_ADDR" == *.archive.org ]]; then
+    if [ "$CI_COMMIT_REF_SLUG" = "production"  -o  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
+      PROD_IA=true
+      export BASE_DOMAIN=prod.archive.org
+      if [ "$NOMAD_VAR_COUNT" = "" ]; then
+        export NOMAD_VAR_COUNT=3
+      fi
+      if [ "$NOMAD_TOKEN_PROD" != "" ]; then
+        export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
+        echo using nomad production token
+      fi
+    fi
+  fi
+
+  # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
     if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://dev.archive.org
     elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
@@ -58,35 +74,14 @@ function main() {
 
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_PRODUCTION_BRANCH" = "" ]; then
-    # some archive.org specific production deployment detection & var updates first
-    PROD_IA=
-    if [ "$CI_COMMIT_REF_SLUG" = "production" ]; then
-      if [[ "$NOMAD_ADDR" == *.archive.org ]]; then
-        PROD_IA=1
-      fi
-    fi
-
-    if [ $PROD_IA ]; then
-      export NOMAD_ADDR=https://nomad.ux.archive.org
-      if [ "$NOMAD_VAR_COUNT" = "" ]; then
-        export NOMAD_VAR_COUNT=3
-      fi
-      if [ "$NOMAD_TOKEN_PROD" != "" ]; then
-        export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
-        echo using nomad production token
-      fi
-    fi
-
     if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$PROD_OR_MAIN" ]; then
       USE_FIRST_CUSTOM_HOSTNAME=1
     elif [ $PROD_IA ]; then
       export HOSTNAME="${CI_PROJECT_NAME}.prod.archive.org"
     fi
-  else
+  elif [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
     # only www-offshoot, www-av-avinfo
-    if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
-      USE_FIRST_CUSTOM_HOSTNAME=1
-    fi
+    USE_FIRST_CUSTOM_HOSTNAME=1
   fi
 
   if [ $USE_FIRST_CUSTOM_HOSTNAME ]; then
