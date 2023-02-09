@@ -9,13 +9,20 @@ function main() {
 
   # auto-convert from pre-2022 var name
   if [ "$BASE_DOMAIN" = "" ]; then
-    export BASE_DOMAIN="$KUBE_INGRESS_BASE_DOMAIN"
+    BASE_DOMAIN="$KUBE_INGRESS_BASE_DOMAIN"
+  fi
+  export BASE_DOMAIN
+
+  PROD_OR_MAIN=
+  if [ "$CI_COMMIT_REF_SLUG" = "production" -o "$CI_COMMIT_REF_SLUG" = "main" -o "$CI_COMMIT_REF_SLUG" = "master" ]; then
+    PROD_OR_MAIN=1
   fi
 
+
   # make a nice "slug" that is like [GROUP]-[PROJECT]-[BRANCH], each component also "slugged",
-  # where "-main" or "-master" are omitted.  respect DNS limit of 63 max chars.
+  # where "-main", "-master", or "-production" are omitted.  respect DNS limit of 63 max chars.
   export BRANCH_PART=""
-  if [ "$CI_COMMIT_REF_SLUG" != "main"  -a  "$CI_COMMIT_REF_SLUG" != "master" ]; then
+  if [ ! $PROD_OR_MAIN ]; then
     export BRANCH_PART="-${CI_COMMIT_REF_SLUG}"
   fi
   export NOMAD_VAR_SLUG=$(echo "${CI_PROJECT_PATH_SLUG}${BRANCH_PART}" |cut -b1-63)
@@ -25,6 +32,8 @@ function main() {
   # however, if repo has list of 1+ custom hostnames it wants to use instead for main/master branch
   # review app, then use them and log during [deploy] phase the first hostname in the list
   export HOSTNAME="${NOMAD_VAR_SLUG}.${BASE_DOMAIN}"
+  # NOTE: YAML or CI/CD Variable `NOMAD_VAR_HOSTNAMES` is *IGNORED* -- and automatic $HOSTNAME above
+  #       is used for branches not main/master/production
 
   # make even nicer names for archive.org processing cluster deploys
   if [ "$BASE_DOMAIN" = "work.archive.org" ]; then
@@ -33,8 +42,10 @@ function main() {
 
   # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
-    if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://nom.archive.org
-    elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://nom.archive.org
+    if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://dev.archive.org
+    elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
+  # elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
+  # elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
     elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
     elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
     fi
@@ -42,12 +53,6 @@ function main() {
 
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_PRODUCTION_BRANCH" = "" ]; then
-
-    PROD_OR_MAIN=
-    if [ "$CI_COMMIT_REF_SLUG" = "production" -o "$CI_COMMIT_REF_SLUG" = "main" -o "$CI_COMMIT_REF_SLUG" = "master" ]; then
-      PROD_OR_MAIN=1
-    fi
-
     # some archive.org specific production deployment detection & var updates first
     PROD_IA=
     if [ "$CI_COMMIT_REF_SLUG" = "production" ]; then
@@ -73,6 +78,7 @@ function main() {
       export HOSTNAME="${CI_PROJECT_NAME}.prod.archive.org"
     fi
   else
+    # only www-offshoot, www-av-avinfo
     if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
       USE_FIRST_CUSTOM_HOSTNAME=1
     fi
@@ -89,8 +95,13 @@ function main() {
   fi
 
 
-  if [[ "$NOMAD_ADDR" == *crawl*.archive.org:* ]]; then
+  if [[ "$NOMAD_ADDR" == *crawl*.archive.org:* ]]; then # nixxx
     export NOMAD_VAR_CONSUL_PATH='/usr/local/bin/consul'
+  fi
+
+  if [ "$BASE_DOMAIN" != "" ]; then
+    # Now auto-append .$BASE_DOMAIN to any hostname that isn't a fully qualified domain name
+    export NOMAD_VAR_HOSTNAMES=$(deno eval 'const fqdns = JSON.parse(Deno.env.get("NOMAD_VAR_HOSTNAMES")).map((e) => e.includes(".") ? e : e.concat(".").concat(Deno.env.get("BASE_DOMAIN"))); console.log(fqdns)')
   fi
 
   if [ "$CI_R2_USER" = "0" ]; then unset CI_R2_USER; fi
@@ -152,9 +163,14 @@ function main() {
   sed -i "s/NOMAD_VAR_SLUG/$NOMAD_VAR_SLUG/" project.hcl
 
   if [ "$NOMAD_SECRETS" = "" ]; then
-    # set NOMAD_SECRETS to JSON encoded key/val hashmap of env vars starting w/ "NOMAD_SECRET_"
+    # Set NOMAD_SECRETS to JSON encoded key/val hashmap of env vars starting w/ "NOMAD_SECRET_"
     # (w/ NOMAD_SECRET_ prefix omitted), then convert to HCL style hashmap string (chars ":" => "=")
-    echo NOMAD_SECRETS=$(deno eval 'console.log(JSON.stringify(Object.fromEntries(Object.entries(Deno.env.toObject()).filter(([k, v]) => k.startsWith("NOMAD_SECRET_")).map(([k ,v]) => [k.replace(/^NOMAD_SECRET_/,""), v]))))' | sed 's/":"/"="/g') >| env.env
+    # If repo uses 1+ such secret, we *also* pass in env var NOMAD_HOSTNAME to the running container.
+    echo '{}' >| env.env
+    ( env | grep -qE ^NOMAD_SECRET_ )  &&  (
+      export NOMAD_HOSTNAME=$HOSTNAME
+      echo NOMAD_SECRETS=$(deno eval 'console.log(JSON.stringify(Object.fromEntries(Object.entries(Deno.env.toObject()).filter(([k, v]) => k.startsWith("NOMAD_SECRET_") || k==="NOMAD_HOSTNAME").map(([k ,v]) => [k.replace(/^NOMAD_SECRET_/,""), v]))))' | sed 's/":"/"="/g') >| env.env
+    )
   else
     # this alternate clause allows GitHub Actions to send in repo secrets to us, as a single secret
     # variable, as our JSON-like hashmap of keys (secret/env var names) and values
@@ -163,7 +179,7 @@ NOMAD_SECRETS=$NOMAD_SECRETS
 EOF
   fi
   # copy current env vars starting with "CI_" to "NOMAD_VAR_CI_" variants & inject them into shell
-  deno eval 'Object.entries(Deno.env.toObject()).map(([k, v]) => console.log("export NOMAD_VAR_"+k+"="+JSON.stringify(v)))' |egrep '^export NOMAD_VAR_CI_' >| ci.env
+  deno eval 'Object.entries(Deno.env.toObject()).map(([k, v]) => console.log("export NOMAD_VAR_"+k+"="+JSON.stringify(v)))' | grep -E '^export NOMAD_VAR_CI_' >| ci.env
   source ci.env
   rm     ci.env
 
@@ -221,7 +237,7 @@ function github-setup() {
 
 
   # unset any blank vars that come in from GH actions
-  for i in $(env |egrep '^NOMAD_VAR_[A-Z0-9_]+=$' |cut -f1 -d=); do
+  for i in $(env | grep -E '^NOMAD_VAR_[A-Z0-9_]+=$' |cut -f1 -d=); do
     unset $i
   done
 
