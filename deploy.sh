@@ -51,6 +51,11 @@ function main() {
     fi
   fi
 
+  if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$BASE_DOMAIN" != "" ]; then
+    # Now auto-append .$BASE_DOMAIN to any hostname that isn't a fully qualified domain name
+    export NOMAD_VAR_HOSTNAMES=$(deno eval 'const fqdns = JSON.parse(Deno.env.get("NOMAD_VAR_HOSTNAMES")).map((e) => e.includes(".") ? e : e.concat(".").concat(Deno.env.get("BASE_DOMAIN"))); console.log(fqdns)')
+  fi
+
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_PRODUCTION_BRANCH" = "" ]; then
     # some archive.org specific production deployment detection & var updates first
@@ -99,10 +104,6 @@ function main() {
     export NOMAD_VAR_CONSUL_PATH='/usr/local/bin/consul'
   fi
 
-  if [ "$BASE_DOMAIN" != "" ]; then
-    # Now auto-append .$BASE_DOMAIN to any hostname that isn't a fully qualified domain name
-    export NOMAD_VAR_HOSTNAMES=$(deno eval 'const fqdns = JSON.parse(Deno.env.get("NOMAD_VAR_HOSTNAMES")).map((e) => e.includes(".") ? e : e.concat(".").concat(Deno.env.get("BASE_DOMAIN"))); console.log(fqdns)')
-  fi
 
   if [ "$CI_R2_USER" = "0" ]; then unset CI_R2_USER; fi
   if [ "$CI_R2_PASS" = "0" ]; then unset CI_R2_PASS; fi
