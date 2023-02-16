@@ -60,12 +60,13 @@ function main() {
 
   # some archive.org specific production deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
-    if   [ "$BASE_DOMAIN" =      "archive.org" ]; then export NOMAD_ADDR=https://dev.archive.org
-    elif [ "$BASE_DOMAIN" =  "dev.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
-  # elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
-  # elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
-    elif [ "$BASE_DOMAIN" = "prod.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
-    elif [ "$BASE_DOMAIN" =   "ux.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
+    if   [ "$BASE_DOMAIN" =        "archive.org" ]; then export NOMAD_ADDR=https://dev.archive.org
+    elif [ "$BASE_DOMAIN" =    "dev.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
+  # elif [ "$BASE_DOMAIN" =   "prod.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
+  # elif [ "$BASE_DOMAIN" =     "ux.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
+    elif [ "$BASE_DOMAIN" =   "prod.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
+    elif [ "$BASE_DOMAIN" =     "ux.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
+    elif [ "$BASE_DOMAIN" = "ux-dev.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux-dev.archive.org
     fi
   fi
 
