@@ -222,7 +222,7 @@ Keep in mind if your deployment uses a "persistent volume" or talks to other bac
 
 Setting up your repo to deploy to production is easy!
 
-- add a CI/CD Secret `NOMAD_TOKEN_PROD` with the nomad cluster value (ask tracey or matt)
+- add a CI/CD Secret `NOMAD_TOKEN_PROD` with the nomad cluster value (ask tracey or robK)
   - make it: protected, masked
 ![Production CI/CD Secret](img/prod.jpg)
 - Make a new branch named `production` (presumably from your repo's latest `main` or `master` branch)
@@ -230,6 +230,21 @@ Setting up your repo to deploy to production is easy!
   - Your default hostname domain will change from `.dev.archive.org` to `.prod.archive.org`
 - [GitLab only] - [Protect the `production` branch](https://docs.gitlab.com/ee/user/project/protected_branches.html)
   - suggest using same settings as your `main` or `master` (or default) branch
+![Protect a branch](img/protect.jpg)
+
+
+### Deploying to staging nomad cluster (archive.org only)
+Our production cluster will deploy your repo to a running container on one of its VMs.
+
+Setting up your repo to deploy to staging is easy!
+
+- add a CI/CD Secret `NOMAD_TOKEN_STAGING` with the nomad cluster value (ask tracey or robK)
+  - make it: protected, masked (similar to `production` section above)
+- Make a new branch named `staging` (presumably from your repo's latest `main` or `master` branch)
+  - It should now deploy your project to a different `NOMAD_ADDR` url
+  - Your default hostname domain will change from `.dev.archive.org` to `.staging.archive.org`
+- [GitLab only] - [Protect the `staging` branch](https://docs.gitlab.com/ee/user/project/protected_branches.html)
+  - suggest using same settings as your `main` or `master` (or default) branch, changing `production` to `staging` here:
 ![Protect a branch](img/protect.jpg)
 
 

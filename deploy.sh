@@ -12,8 +12,9 @@ function main() {
     BASE_DOMAIN="$KUBE_INGRESS_BASE_DOMAIN"
   fi
 
-  # some archive.org specific production deployment detection & var updates first
+  # some archive.org specific production/staging deployment detection & var updates first
   PROD_IA=
+  STAGING_IA=
   if [[ "$BASE_DOMAIN" == *.archive.org ]]; then
     if [ "$CI_COMMIT_REF_SLUG" = "production"  -o  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
       PROD_IA=true
@@ -25,22 +26,29 @@ function main() {
         export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
         echo using nomad production token
       fi
+    elif [ "$CI_COMMIT_REF_SLUG" = "staging" ]; then
+      STAGING_IA=true
+      export BASE_DOMAIN=staging.archive.org
+      if [ "$NOMAD_TOKEN_STAGING" != "" ]; then
+        export NOMAD_TOKEN="$NOMAD_TOKEN_STAGING"
+        echo using nomad staging token
+      fi
     fi
   fi
 
   export BASE_DOMAIN
 
 
-  PROD_OR_MAIN=
-  if [ "$CI_COMMIT_REF_SLUG" = "production" -o "$CI_COMMIT_REF_SLUG" = "main" -o "$CI_COMMIT_REF_SLUG" = "master" ]; then
-    PROD_OR_MAIN=1
+  MAIN_OR_PROD_OR_STAGING=
+  if [ "$CI_COMMIT_REF_SLUG" = "main" -o "$CI_COMMIT_REF_SLUG" = "master" -o "$CI_COMMIT_REF_SLUG" = "production" -o "$CI_COMMIT_REF_SLUG" = "staging" ]; then
+    MAIN_OR_PROD_OR_STAGING=1
   fi
 
 
-  # make a nice "slug" that is like [GROUP]-[PROJECT]-[BRANCH], each component also "slugged",
-  # where "-main", "-master", or "-production" are omitted.  respect DNS limit of 63 max chars.
+  # Make a nice "slug" that is like [GROUP]-[PROJECT]-[BRANCH], each component also "slugged",
+  # where "-main", "-master", "-production", "-staging" are omitted. Respect DNS 63 max chars limit.
   export BRANCH_PART=""
-  if [ ! $PROD_OR_MAIN ]; then
+  if [ ! $MAIN_OR_PROD_OR_STAGING ]; then
     export BRANCH_PART="-${CI_COMMIT_REF_SLUG}"
   fi
   export NOMAD_VAR_SLUG=$(echo "${CI_PROJECT_PATH_SLUG}${BRANCH_PART}" |cut -b1-63)
@@ -51,22 +59,23 @@ function main() {
   # review app, then use them and log during [deploy] phase the first hostname in the list
   export HOSTNAME="${NOMAD_VAR_SLUG}.${BASE_DOMAIN}"
   # NOTE: YAML or CI/CD Variable `NOMAD_VAR_HOSTNAMES` is *IGNORED* -- and automatic $HOSTNAME above
-  #       is used for branches not main/master/production
+  #       is used for branches not main/master/production/staging
 
   # make even nicer names for archive.org processing cluster deploys
   if [ "$BASE_DOMAIN" = "work.archive.org" ]; then
     export HOSTNAME="${CI_PROJECT_NAME}${BRANCH_PART}.${BASE_DOMAIN}"
   fi
 
-  # some archive.org specific production deployment detection & var updates first
+  # some archive.org specific deployment detection & var updates first
   if [ "$NOMAD_ADDR" = "" ]; then
-    if   [ "$BASE_DOMAIN" =        "archive.org" ]; then export NOMAD_ADDR=https://dev.archive.org
-    elif [ "$BASE_DOMAIN" =    "dev.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
-  # elif [ "$BASE_DOMAIN" =   "prod.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
-  # elif [ "$BASE_DOMAIN" =     "ux.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
-    elif [ "$BASE_DOMAIN" =   "prod.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
-    elif [ "$BASE_DOMAIN" =     "ux.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
-    elif [ "$BASE_DOMAIN" = "ux-dev.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux-dev.archive.org
+    if   [ "$BASE_DOMAIN" =         "archive.org" ]; then export NOMAD_ADDR=https://dev.archive.org
+    elif [ "$BASE_DOMAIN" =     "dev.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
+    elif [ "$BASE_DOMAIN" = "staging.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN
+  # elif [ "$BASE_DOMAIN" =    "prod.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
+  # elif [ "$BASE_DOMAIN" =      "ux.archive.org" ]; then export NOMAD_ADDR=https://$BASE_DOMAIN # xxx
+    elif [ "$BASE_DOMAIN" =    "prod.archive.org" ]; then export NOMAD_ADDR=https://nomad.ux.archive.org
+    elif [ "$BASE_DOMAIN" =      "ux.archive.org" ]; then export NOMAD_ADDR=https://nomad.$BASE_DOMAIN
+    elif [ "$BASE_DOMAIN" =  "ux-dev.archive.org" ]; then export NOMAD_ADDR=https://nomad.$BASE_DOMAIN
     fi
   fi
 
@@ -77,15 +86,20 @@ function main() {
 
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_PRODUCTION_BRANCH" = "" ]; then
-    if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$PROD_OR_MAIN" ]; then
+    if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$MAIN_OR_PROD_OR_STAGING" ]; then
       USE_FIRST_CUSTOM_HOSTNAME=1
     elif [ $PROD_IA ]; then
-      export HOSTNAME="${CI_PROJECT_NAME}.prod.archive.org"
+      export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
     fi
   elif [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
     # only www-offshoot, www-av-avinfo
     USE_FIRST_CUSTOM_HOSTNAME=1
   fi
+
+  if [ $STAGING_IA ]; then
+    export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
+  fi
+
 
   if [ $USE_FIRST_CUSTOM_HOSTNAME ]; then
     export HOSTNAME=$(echo "$NOMAD_VAR_HOSTNAMES" |cut -f1 -d, |tr -d '[]" ' |tr -d "'")
@@ -201,6 +215,7 @@ function github-setup() {
   # You must add these as Secrets to your repository:
   #   NOMAD_TOKEN
   #   NOMAD_TOKEN_PROD (optional)
+  #   NOMAD_TOKEN_STAGING (optional)
 
   # You may override the defaults via passed-in args from your repository:
   #   BASE_DOMAIN
