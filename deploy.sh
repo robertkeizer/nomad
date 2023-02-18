@@ -13,22 +13,22 @@ function main() {
   fi
 
   # some archive.org specific production/staging deployment detection & var updates first
-  PROD_IA=
-  STAGING_IA=
   if [[ "$BASE_DOMAIN" == *.archive.org ]]; then
-    if [ "$CI_COMMIT_REF_SLUG" = "production"  -o  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
-      PROD_IA=true
+    if [ "$CI_COMMIT_REF_SLUG" = "production" ]; then
       export BASE_DOMAIN=prod.archive.org
-      if [ "$NOMAD_VAR_COUNT" = "" ]; then
-        export NOMAD_VAR_COUNT=3
-      fi
+    elif [ "$CI_COMMIT_REF_SLUG" = "staging" ]; then
+      export BASE_DOMAIN=staging.archive.org
+    fi
+
+    if [ "$BASE_DOMAIN" = prod.archive.org ]; then
       if [ "$NOMAD_TOKEN_PROD" != "" ]; then
         export NOMAD_TOKEN="$NOMAD_TOKEN_PROD"
         echo using nomad production token
       fi
-    elif [ "$CI_COMMIT_REF_SLUG" = "staging" ]; then
-      STAGING_IA=true
-      export BASE_DOMAIN=staging.archive.org
+      if [ "$NOMAD_VAR_COUNT" = "" ]; then
+        export NOMAD_VAR_COUNT=3
+      fi
+    elif [ "$BASE_DOMAIN" = staging.archive.org ]; then
       if [ "$NOMAD_TOKEN_STAGING" != "" ]; then
         export NOMAD_TOKEN="$NOMAD_TOKEN_STAGING"
         echo using nomad staging token
@@ -85,18 +85,17 @@ function main() {
   fi
 
   USE_FIRST_CUSTOM_HOSTNAME=
-  if [ "$NOMAD_VAR_PRODUCTION_BRANCH" = "" ]; then
-    if [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$MAIN_OR_PROD_OR_STAGING" ]; then
-      USE_FIRST_CUSTOM_HOSTNAME=1
-    elif [ $PROD_IA ]; then
-      export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
-    fi
-  elif [ "$NOMAD_VAR_HOSTNAMES" != ""  -a  "$CI_COMMIT_REF_SLUG" = "$NOMAD_VAR_PRODUCTION_BRANCH" ]; then
-    # only www-offshoot, www-av-avinfo
+  if [ "$NOMAD_VAR_HOSTNAMES" != "" ]; then
+    if [ "$BASE_DOMAIN" = prod.archive.org  -o  $MAIN_OR_PROD_OR_STAGING ]; then
     USE_FIRST_CUSTOM_HOSTNAME=1
   fi
 
-  if [ $STAGING_IA ]; then
+
+  if [ "$BASE_DOMAIN" = prod.archive.org  -a  ! $USE_FIRST_CUSTOM_HOSTNAME ]; then
+    export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
+  fi
+
+  if [ "$BASE_DOMAIN" = staging.archive.org ]; then
     export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
   fi
 
