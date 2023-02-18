@@ -87,7 +87,8 @@ function main() {
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_HOSTNAMES" != "" ]; then
     if [ "$BASE_DOMAIN" = prod.archive.org  -o  $MAIN_OR_PROD_OR_STAGING ]; then
-    USE_FIRST_CUSTOM_HOSTNAME=1
+      USE_FIRST_CUSTOM_HOSTNAME=1
+    fi
   fi
 
 
