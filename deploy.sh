@@ -86,14 +86,15 @@ function main() {
 
   USE_FIRST_CUSTOM_HOSTNAME=
   if [ "$NOMAD_VAR_HOSTNAMES" != "" ]; then
-    if [ "$BASE_DOMAIN" = prod.archive.org  -o  $MAIN_OR_PROD_OR_STAGING ]; then
-      USE_FIRST_CUSTOM_HOSTNAME=1
-    fi
+    [ "$BASE_DOMAIN" = prod.archive.org ]  &&  USE_FIRST_CUSTOM_HOSTNAME=1
+    [ $MAIN_OR_PROD_OR_STAGING ]           &&  USE_FIRST_CUSTOM_HOSTNAME=1
   fi
 
 
-  if [ "$BASE_DOMAIN" = prod.archive.org  -a  ! $USE_FIRST_CUSTOM_HOSTNAME ]; then
-    export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
+  if [ "$BASE_DOMAIN" = prod.archive.org ]; then
+    if [ ! $USE_FIRST_CUSTOM_HOSTNAME ]; then
+      export HOSTNAME="${CI_PROJECT_NAME}.$BASE_DOMAIN"
+    fi
   fi
 
   if [ "$BASE_DOMAIN" = staging.archive.org ]; then
