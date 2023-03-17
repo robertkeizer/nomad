@@ -250,7 +250,7 @@ function nom-job-from-cwd() {
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
 	SLUG=$(echo "$BRANCH" |tr '/_.' '-' |tr A-Z a-z)
   JOB=$GROUP_PROJECT
-  [ "$SLUG" = "main" -o "$SLUG" = "master" ]  ||  JOB="${JOB}-${SLUG}"
+  [ "$SLUG" = "main" -o "$SLUG" = "master" -o "$SLUG" = "staging" -o "$SLUG" = "production" ]  ||  JOB="${JOB}-${SLUG}"
   echo $(echo "$JOB" |cut -b1-63)
 }
 
