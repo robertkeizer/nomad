@@ -414,6 +414,19 @@ job "NOMAD_VAR_SLUG" {
               data = "{{ key \"${var.SLUG}\" }}"
             }
           }
+
+          template {
+            # Pass in useful hostname(s), repo & branch info to container's runtime as env vars
+            change_mode = "noop"
+            destination = "secrets/ci.env"
+            env         = true
+            data = <<EOH
+CI_HOSTNAME=${var.HOSTNAMES[0]}
+CI_COMMIT_REF_SLUG=${var.CI_COMMIT_REF_SLUG}
+CI_PROJECT_PATH_SLUG=${var.CI_PROJECT_PATH_SLUG}
+CI_COMMIT_SHA=${var.CI_COMMIT_SHA}
+            EOH
+          }
         }
       } # end dynamic "task"
 
