@@ -200,8 +200,11 @@ EOF
 
   # This particular fail case output doesnt seem to exit non-zero -- so we have to check for it
   #   ==> 2023-03-29T17:21:15Z: Error fetching deployment
-  nomad run      -var-file=env.env -check-index $INDEX project.hcl >| check.log 2>&1
-  cat check.log
+  set -o pipefail
+  nomad run      -var-file=env.env -check-index $INDEX project.hcl 2>&1 |tee check.log
+  if [ "$?" != "0" ]; then
+    exit 1
+  fi
   if fgrep 'Error fetching deployment' check.log; then
     exit 1
   fi
