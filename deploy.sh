@@ -197,9 +197,16 @@ EOF
   nomad validate -var-file=env.env project.hcl
   nomad plan     -var-file=env.env project.hcl 2>&1 |sed 's/\(password[^ \t]*[ \t]*\).*/\1 ... /' |tee plan.log  ||  echo
   export INDEX=$(grep -E -o -- '-check-index [0-9]+' plan.log |tr -dc 0-9)
-  nomad run      -var-file=env.env -check-index $INDEX project.hcl
 
-  rm env.env plan.log
+  # This particular fail case output doesnt seem to exit non-zero -- so we have to check for it
+  #   ==> 2023-03-29T17:21:15Z: Error fetching deployment
+  nomad run      -var-file=env.env -check-index $INDEX project.hcl >| check.log 2>&1
+  cat check.log
+  if fgrep 'Error fetching deployment' check.log; then
+    exit 1
+  fi
+
+  rm env.env plan.log check.log
   set +x
 
   echo deployed to https://$HOSTNAME
