@@ -433,11 +433,11 @@ CI_COMMIT_SHA=${var.CI_COMMIT_SHA}
 
       dynamic "task" {
         # When a job has CI/CD secrets - eg: CI/CD Variables named like "NOMAD_SECRET_..."
-        # then here is where we dynamically insert them into consul (as a single JSON k/v string)
+        # then here is where we dynamically insert them into consul (as a single JSON k/v string).
+        # NOTE: 4/2023 we switch from "exec" after a jammy ubuntu VM had cgroup perms issues.
         for_each = slice(keys(var.NOMAD_SECRETS), 0, min(1, length(keys(var.NOMAD_SECRETS))))
         labels = ["kv"]
         content {
-          # NOTE: 4/2023 we switch from "exec" after a `jammy` ubuntu VM had cgroup perms issues
           driver = "raw_exec"
           config {
             command = var.CONSUL_PATH
