@@ -13,8 +13,9 @@ variables {
   CI_REGISTRY_USER = ""                                     # set for each pipeline and ..
   CI_REGISTRY_PASSWORD = ""                                 # .. allows pull from private registry
   # optional CI/CD registry read token which allows rerun of deploy phase anytime later
-  REGISTRY_READ_TOKEN = ""                                   # preferred name
+  REGISTRY_READ_TOKEN = ""                                  # preferred name
   CI_R2_PASS = ""                                           # deprecated name
+  CI_R2_USER = ""                                           # deprecated
 
 
   # This autogenerates from https://gitlab.com/internetarchive/nomad/-/blob/master/.gitlab-ci.yml
