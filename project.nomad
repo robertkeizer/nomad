@@ -161,8 +161,8 @@ locals {
   # GitLab docker login user/pass timeout rather quickly. If admin has set a REGISTRY_READ_TOKEN key
   # in the group [Settings] [CI/CD] [Variables] - then use a token-based alternative to deploy.
   # Effectively use REGISTRY_READ_TOKEN variant if set; else use CI_REGISTRY_* PAIR
-  deploy_token = join("", [for s in [var.REGISTRY_READ_TOKEN, var.CI_R2_PASS]: "deploy-token" if s != ""])
-  docker_user = [for s in [local.deploy_token, var.CI_REGISTRY_USER] : s if s != ""]
+  deploy_token = join("", [for s in [var.REGISTRY_READ_TOKEN]: "deploy-token" if s != ""])
+  docker_user = [for s in [local.deploy_token, var.CI_R2_PASS, var.CI_REGISTRY_USER] : s if s != ""]
   docker_pass = [for s in [var.REGISTRY_READ_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
   # Make [""] (array of length 1, val empty string) if all docker password vars are ""
   docker_no_login = [for s in [join("", [var.REGISTRY_READ_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD])]: s if s == ""]
