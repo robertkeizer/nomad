@@ -9,12 +9,12 @@ variables {
   CI_COMMIT_SHA = "latest"                                  # repo's commit for current pipline
   CI_PROJECT_PATH_SLUG = "internetarchive-bai"              # repo and group it is part of, slugged
 
-  # NOTE: if repo is public, you can ignore these next 4 registry related vars
+  # NOTE: if repo is public, you can ignore these next 3 registry related vars
   CI_REGISTRY_USER = ""                                     # set for each pipeline and ..
   CI_REGISTRY_PASSWORD = ""                                 # .. allows pull from private registry
-  # optional (but suggested!) CI/CD group or project vars:
-  CI_R2_USER = ""                                           # optional more reliable alternative ..
-  CI_R2_PASS = ""                                           # .. to 1st user/pass (see README.md)
+  # optional CI/CD registry read token which allows rerun of deploy phase anytime later
+  CI_REGISTRY_TOKEN = ""                                    # preferred name
+  CI_R2_PASS = ""                                           # deprecated name
 
 
   # This autogenerates from https://gitlab.com/internetarchive/nomad/-/blob/master/.gitlab-ci.yml
@@ -158,13 +158,14 @@ locals {
   # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
   docker_image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
 
-  # GitLab docker login user/pass are pretty unstable.  If admin has set `..R2..` keys in
-  # the group [Settings] [CI/CD] [Variables] - then use deploy token-based alternatives.
-  # Effectively use CI_R2_* variant if set; else use CI_REGISTRY_* PAIR
-  docker_user = [for s in [var.CI_R2_USER, var.CI_REGISTRY_USER    ] : s if s != ""]
-  docker_pass = [for s in [var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
+  # GitLab docker login user/pass timeout rather quickly.  If admin has set a CI_REGISTRY_TOKEN key
+  # in the group [Settings] [CI/CD] [Variables] - then use a token-based alternative to deploy.
+  # Effectively use CI_REGISTRY_TOKEN variant if set; else use CI_REGISTRY_* PAIR
+  deploy_token = join("", [for s in [var.CI_REGISTRY_TOKEN, var.CI_R2_PASS]: "deploy token" if s != ""])
+  docker_user = [for s in [local.deploy_token, var.CI_REGISTRY_USER] : s if s != ""]
+  docker_pass = [for s in [var.CI_REGISTRY_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
   # Make [""] (array of length 1, val empty string) if all docker password vars are ""
-  docker_no_login = [for s in [join("", [var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD])]: s if s == ""]
+  docker_no_login = [for s in [join("", docker_pass)]: s if s == ""]
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
@@ -431,12 +432,13 @@ CI_COMMIT_SHA=${var.CI_COMMIT_SHA}
       } # end dynamic "task"
 
       dynamic "task" {
-        # when a job has CI/CD secrets - eg: CI/CD Variables named like "NOMAD_SECRET_..."
+        # When a job has CI/CD secrets - eg: CI/CD Variables named like "NOMAD_SECRET_..."
         # then here is where we dynamically insert them into consul (as a single JSON k/v string)
         for_each = slice(keys(var.NOMAD_SECRETS), 0, min(1, length(keys(var.NOMAD_SECRETS))))
         labels = ["kv"]
         content {
-          driver = "exec"
+          # NOTE: 4/2023 we switch from "exec" after a `jammy` ubuntu VM had cgroup perms issues
+          driver = "raw_exec"
           config {
             command = var.CONSUL_PATH
             args = [ "kv", "put", var.SLUG, local.kv ]
