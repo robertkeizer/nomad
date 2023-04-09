@@ -165,7 +165,7 @@ locals {
   docker_user = [for s in [local.deploy_token, var.CI_REGISTRY_USER] : s if s != ""]
   docker_pass = [for s in [var.CI_REGISTRY_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
   # Make [""] (array of length 1, val empty string) if all docker password vars are ""
-  docker_no_login = [for s in [join("", docker_pass)]: s if s == ""]
+  docker_no_login = [for s in [join("", [var.CI_REGISTRY_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD])]: s if s == ""]
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
@@ -438,7 +438,7 @@ CI_COMMIT_SHA=${var.CI_COMMIT_SHA}
         for_each = slice(keys(var.NOMAD_SECRETS), 0, min(1, length(keys(var.NOMAD_SECRETS))))
         labels = ["kv"]
         content {
-          driver = "exec"
+          driver = "raw_exec"
           config {
             command = var.CONSUL_PATH
             args = [ "kv", "put", var.SLUG, local.kv ]
