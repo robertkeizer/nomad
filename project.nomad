@@ -13,7 +13,7 @@ variables {
   CI_REGISTRY_USER = ""                                     # set for each pipeline and ..
   CI_REGISTRY_PASSWORD = ""                                 # .. allows pull from private registry
   # optional CI/CD registry read token which allows rerun of deploy phase anytime later
-  REGISTRY_READ_TOKEN = ""                                  # preferred name
+  CI_REGISTRY_READ_TOKEN = ""                               # preferred name
   CI_R2_PASS = ""                                           # deprecated name
   CI_R2_USER = ""                                           # deprecated
 
@@ -159,14 +159,14 @@ locals {
   # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
   docker_image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
 
-  # GitLab docker login user/pass timeout rather quickly. If admin has set a REGISTRY_READ_TOKEN key
-  # in the group [Settings] [CI/CD] [Variables] - then use a token-based alternative to deploy.
-  # Effectively use REGISTRY_READ_TOKEN variant if set; else use CI_REGISTRY_* PAIR
-  deploy_token = join("", [for s in [var.REGISTRY_READ_TOKEN]: "deploy-token" if s != ""])
+  # GitLab docker login user/pass timeout rather quickly.  If admin set CI_REGISTRY_READ_TOKEN key
+  # in the group/repo [Settings] [CI/CD] [Variables] - then use a token-based alternative to deploy.
+  # Effectively use CI_REGISTRY_READ_TOKEN variant if set; else use CI_REGISTRY_* PAIR
+  deploy_token = join("", [for s in [var.CI_REGISTRY_READ_TOKEN]: "deploy-token" if s != ""])
   docker_user = [for s in [local.deploy_token, var.CI_R2_USER, var.CI_REGISTRY_USER] : s if s != ""]
-  docker_pass = [for s in [var.REGISTRY_READ_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
+  docker_pass = [for s in [var.CI_REGISTRY_READ_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD] : s if s != ""]
   # Make [""] (array of length 1, val empty string) if all docker password vars are ""
-  docker_no_login = [for s in [join("", [var.REGISTRY_READ_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD])]: s if s == ""]
+  docker_no_login = [for s in [join("", [var.CI_REGISTRY_READ_TOKEN, var.CI_R2_PASS, var.CI_REGISTRY_PASSWORD])]: s if s == ""]
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".

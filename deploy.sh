@@ -114,7 +114,7 @@ function main() {
   fi
 
 
-  if [ "$REGISTRY_READ_TOKEN" = "0" ]; then unset REGISTRY_READ_TOKEN; fi
+  if [ "$CI_REGISTRY_READ_TOKEN" = "0" ]; then unset CI_REGISTRY_READ_TOKEN; fi
   if [ "$CI_R2_PASS" = "0" ]; then unset CI_R2_PASS; fi
 
   ############################### NOMAD VARS SETUP ##############################
@@ -248,11 +248,11 @@ function github-setup() {
   # eg: internetarchive-dyno  xxxd better slugification
   export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr / -)
 
-  export REGISTRY_READ_TOKEN=${REGISTRY_TOKEN?}
+  export CI_REGISTRY_READ_TOKEN=${REGISTRY_TOKEN?}
   if [ "$PRIVATE_REPO" = "false" ]; then
     # turn off `docker login`` before pulling registry image, since it seems like the TOKEN expires
     # and makes re-deployment due to containers changing hosts not work.. sometimes? always?
-    unset REGISTRY_READ_TOKEN
+    unset CI_REGISTRY_READ_TOKEN
   fi
 
 
