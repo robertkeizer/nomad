@@ -115,7 +115,6 @@ function main() {
 
 
   if [ "$CI_REGISTRY_READ_TOKEN" = "0" ]; then unset CI_REGISTRY_READ_TOKEN; fi
-  if [ "$CI_R2_PASS" = "0" ]; then unset CI_R2_PASS; fi
 
   ############################### NOMAD VARS SETUP ##############################
 
