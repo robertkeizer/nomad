@@ -222,6 +222,10 @@ bootstrap_expect = '$COUNT'
 encrypt = "'$TOK_C'"
 retry_join = ["'$FIRSTIP'"]
 ui_config { enabled = true }
+limits {
+  # default of 200 is too low for clusters with 200+ deploys
+  http_max_conns_per_client = 32767
+}
 ' | sudo tee -a  $CONSUL_HCL
 
   # restart and give a few seconds to ensure server responds
