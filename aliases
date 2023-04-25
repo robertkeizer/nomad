@@ -42,7 +42,7 @@ function nom-ssh() {
   [ $# -ge 1 ]  &&   JOB=$1
   [ $# -lt 1 ]  &&   JOB=$(nom-job-from-cwd)
   [ $# -ge 2 ]  &&  TASK=$2    # for rarer TaskGroup case where 2+ Tasks spec-ed in same Job
-  [ $# -lt 2 ]  &&  TASK=$JOB
+  [ $# -lt 2 ]  &&  TASK=http
 
   ALLOC=$(nomad job status $JOB |egrep -m1 '\srun\s' |cut -f1 -d' ')
   echo "nomad alloc exec -i -t -task $TASK $ALLOC"
@@ -86,7 +86,7 @@ function nom-cp() {
     local BRANCH=$(git rev-parse --abbrev-ref HEAD)
     local JOB=$(nom-job-from-cwd)
     local ALLOC=$(nom-job-to-alloc)
-    local TASK=$JOB
+    local TASK=http
     cd -
 
   else
@@ -95,7 +95,7 @@ function nom-cp() {
     local JOB=$(nom-job-from-cwd)
     local ALLOC=$(nom-job-to-alloc)
     [ $# -ge 2 ]  &&  TASK=$2    # for rarer TaskGroup case where 2+ Tasks spec-ed in sam Job
-    [ $# -lt 2 ]  &&  TASK=$JOB
+    [ $# -lt 2 ]  &&  TASK=http
   fi
 
   # now split the FILE name into two pieces -- 'the root of the git tree' and 'the rest'
@@ -141,7 +141,7 @@ function nom-logs() {
   [ $# -eq 1 ]  &&  JOB=$1
   [ $# -ne 1 ]  &&  JOB=$(nom-job-from-cwd)
   # NOTE: the 2nd $JOB is useful for when a job has 2+ tasks (eg: `kv` or DB/redis, etc.)
-  nomad alloc logs -f -job $JOB $JOB
+  nomad alloc logs -f -job $JOB http
 }
 
 
@@ -149,7 +149,7 @@ function nom-logs-err() {
   # simple way to view logs for a given job
   [ $# -eq 1 ]  &&  JOB=$1
   [ $# -ne 1 ]  &&  JOB=$(nom-job-from-cwd)
-  nomad alloc logs -stderr -f -job $JOB $JOB
+  nomad alloc logs -stderr -f -job $JOB http
 }
 
 

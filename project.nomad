@@ -176,6 +176,30 @@ locals {
 
   # make boolean-like array that can logically if/else out 2 `dynamic` blocks below for type=batch
   service_type = [for v in [var.IS_BATCH]: "service" if !v]
+
+  # split the 1st hostname into non-domain and domain parts
+  host0parts = split(".", var.HOSTNAMES[0])
+  host0 = local.host0parts[0]
+  host0domain = join(".", slice(local.host0parts, 1, length(local.host0parts)))
+
+
+  # NOTE: Empty tags list if MULTI_CONTAINER (private internal ports like DB)
+  tags = var.MULTI_CONTAINER ? {} : merge(
+    {for portnum, portname in local.ports_extra_https: portname => [
+      # If the main deploy hostname is `card.example.com`, and a 2nd port is named `backend`,
+      # then make its hostname be `card-backend.example.com`
+      "urlprefix-${local.host0}-${portname}.${local.host0domain}:443/",
+      "urlprefix-${local.host0}-${portname}.${local.host0domain}:80/ redirect=308,https://${local.host0}-${portname}.${local.host0domain}$path",
+      "urlprefix-${var.HOSTNAMES[0]}:${portnum}/", # xxx legacy -- remove once everyone updated to hostnames, not ports
+    ]},
+    {for portnum, portname in local.ports_extra_http: portname => [
+      "urlprefix-${local.host0}-${portname}.${local.host0domain}/ proto=http",
+      "urlprefix-${var.HOSTNAMES[0]}:${portnum}/ proto=http", # xxx legacy -- remove once everyone updated to hostnames, not ports
+    ]},
+    {for portnum, portname in local.ports_extra_tcp: portname => [
+      "urlprefix-:${portnum} proto=tcp"
+    ]},
+  )
 }
 
 
@@ -236,8 +260,8 @@ job "NOMAD_VAR_SLUG" {
       #     https://www.nomadproject.io/docs/job-specification/service.html
       #
       service {
-        task = "${var.SLUG}"
-        name = "${var.SLUG}"
+        task = "http"
+        name = "http"
         # second line automatically redirects any http traffic to https
         tags = concat([for HOST in var.HOSTNAMES :
           "urlprefix-${HOST}:443/"], [for HOST in var.HOSTNAMES :
@@ -266,169 +290,127 @@ job "NOMAD_VAR_SLUG" {
       }
 
       dynamic "service" {
-        for_each = local.ports_extra_https
+        for_each = merge(local.ports_extra_https, local.ports_extra_http, local.ports_extra_tcp)
         content {
           # service.key == portnumber
           # service.value == portname
-          name = "${var.SLUG}-${service.value}"
-          task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.MULTI_CONTAINER]))
-          tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/"]
+          name = "${service.value}"
+          # If MULTI_CONTAINER, task name is portname; else is http
+          task = join("", slice(concat(
+              [for s in [service.value]: s if var.MULTI_CONTAINER],
+              ["http"]), 0, 1))
+
+          tags = local.tags[service.value]
           port = "${service.value}"
           check {
             name     = "alive"
             type     = "${var.CHECK_PROTOCOL}"
             path     = "${var.CHECK_PATH}"
-            port     = "http"
+            port     = "http" # for now at least, only end up checking the main daemon's port
             interval = "10s"
-            timeout  = "2s"
+            timeout  = "${var.CHECK_TIMEOUT}"
           }
           check_restart {
             grace = "${var.HEALTH_TIMEOUT}"
           }
         }
       }
-      dynamic "service" {
-        # NOTE: this is like local.ports_extra_https block above, except for "proto=http"
-        for_each = local.ports_extra_http
-        content {
-          # service.key == portnumber
-          # service.value == portname
-          name = "${var.SLUG}-${service.value}"
-          task = join("", concat([var.SLUG], [for s in [service.value]: format("-%s", s) if var.MULTI_CONTAINER]))
-          tags = ["urlprefix-${var.HOSTNAMES[0]}:${service.key}/ proto=http"]
-          port = "${service.value}"
-          check {
-            name     = "alive"
-            type     = "${var.CHECK_PROTOCOL}"
-            path     = "${var.CHECK_PATH}"
-            port     = "http"
-            interval = "10s"
-            timeout  = "2s"
-          }
-          check_restart {
-            grace = "${var.HEALTH_TIMEOUT}"
-          }
-        }
-      }
-      dynamic "service" {
-        for_each = local.ports_extra_tcp
-        content {
-          # service.key == portnumber
-          # service.value == portname
-          name = "${var.SLUG}-${service.value}"
-          tags = ["urlprefix-:${service.key} proto=tcp"]
-          port = "${service.value}"
-          check {
-            name     = "alive"
-            type     = "${var.CHECK_PROTOCOL}"
-            path     = "${var.CHECK_PATH}"
-            port     = "http"
-            interval = "10s"
-            timeout  = "2s"
+
+      task "http" {
+        driver = "docker"
+
+        # UGH - have to copy/paste this next block twice -- first for no docker login needed;
+        #       second for docker login needed (job spec will assemble in just one).
+        #       This is because we can't put dynamic content *inside* the 'config { .. }' stanza.
+        dynamic "config" {
+          for_each = local.docker_no_login
+          content {
+            image = "${local.docker_image}"
+            image_pull_timeout = "20m"
+            network_mode = "${var.NETWORK_MODE}"
+            ports = local.ports_docker
+            mounts = var.BIND_MOUNTS
+            volumes = local.volumes
+            # The MEMORY var now becomes a **soft limit**
+            # We will 10x that for a **hard limit**
+            memory_hard_limit = "${var.MEMORY * 10}"
+
+            force_pull = true
           }
         }
-      }
+        dynamic "config" {
+          for_each = slice(local.docker_pass, 0, min(1, length(local.docker_pass)))
+          content {
+            image = "${local.docker_image}"
+            image_pull_timeout = "20m"
+            network_mode = "${var.NETWORK_MODE}"
+            ports = local.ports_docker
+            mounts = var.BIND_MOUNTS
+            volumes = local.volumes
+            # The MEMORY var now becomes a **soft limit**
+            # We will 10x that for a **hard limit**
+            memory_hard_limit = "${var.MEMORY * 10}"
 
-
-      dynamic "task" {
-        for_each = local.job_names
-        labels = ["${task.value}"]
-        content {
-          driver = "docker"
-
-          # UGH - have to copy/paste this next block twice -- first for no docker login needed;
-          #       second for docker login needed (job spec will assemble in just one).
-          #       This is because we can't put dynamic content *inside* the 'config { .. }' stanza.
-          dynamic "config" {
-            for_each = local.docker_no_login
-            content {
-              image = "${local.docker_image}"
-              image_pull_timeout = "20m"
-              network_mode = "${var.NETWORK_MODE}"
-              ports = local.ports_docker
-              mounts = var.BIND_MOUNTS
-              volumes = local.volumes
-              # The MEMORY var now becomes a **soft limit**
-              # We will 10x that for a **hard limit**
-              memory_hard_limit = "${var.MEMORY * 10}"
-
-              force_pull = true
+            auth {
+              server_address = "${var.CI_REGISTRY}"
+              username = element(local.docker_user, 0)
+              password = "${config.value}"
             }
+
+            force_pull = var.FORCE_PULL
           }
-          dynamic "config" {
-            for_each = slice(local.docker_pass, 0, min(1, length(local.docker_pass)))
-            content {
-              image = "${local.docker_image}"
-              image_pull_timeout = "20m"
-              network_mode = "${var.NETWORK_MODE}"
-              ports = local.ports_docker
-              mounts = var.BIND_MOUNTS
-              volumes = local.volumes
-              # The MEMORY var now becomes a **soft limit**
-              # We will 10x that for a **hard limit**
-              memory_hard_limit = "${var.MEMORY * 10}"
+        }
 
-              auth {
-                server_address = "${var.CI_REGISTRY}"
-                username = element(local.docker_user, 0)
-                password = "${config.value}"
-              }
+        resources {
+          memory = "${var.MEMORY}"
+          cpu    = "${var.CPU}"
+        }
 
-              force_pull = var.FORCE_PULL
-            }
+
+        dynamic "volume_mount" {
+          for_each = setintersection([var.HOME], ["ro"])
+          content {
+            volume      = "home-${volume_mount.key}"
+            destination = "/home"
+            read_only   = true
           }
-
-          resources {
-            memory = "${var.MEMORY}"
-            cpu    = "${var.CPU}"
+        }
+        dynamic "volume_mount" {
+          for_each = setintersection([var.HOME], ["rw"])
+          content {
+            volume      = "home-${volume_mount.key}"
+            destination = "/home"
+            read_only   = false
           }
+        }
 
-
-          dynamic "volume_mount" {
-            for_each = setintersection([var.HOME], ["ro"])
-            content {
-              volume      = "home-${volume_mount.key}"
-              destination = "/home"
-              read_only   = true
-            }
-          }
-          dynamic "volume_mount" {
-            for_each = setintersection([var.HOME], ["rw"])
-            content {
-              volume      = "home-${volume_mount.key}"
-              destination = "/home"
-              read_only   = false
-            }
-          }
-
-          dynamic "template" {
-            # Secrets get stored in consul kv store, with the key [SLUG], when your project has set a
-            # CI/CD variable like NOMAD_SECRET_[SOMETHING].
-            # Setup the nomad job to dynamically pull secrets just before the container starts -
-            # and insert them into the running container as environment variables.
-            for_each = slice(keys(var.NOMAD_SECRETS), 0, min(1, length(keys(var.NOMAD_SECRETS))))
-            content {
-              change_mode = "noop"
-              destination = "secrets/kv.env"
-              env         = true
-              data = "{{ key \"${var.SLUG}\" }}"
-            }
-          }
-
-          template {
-            # Pass in useful hostname(s), repo & branch info to container's runtime as env vars
+        dynamic "template" {
+          # Secrets get stored in consul kv store, with the key [SLUG], when your project has set a
+          # CI/CD variable like NOMAD_SECRET_[SOMETHING].
+          # Setup the nomad job to dynamically pull secrets just before the container starts -
+          # and insert them into the running container as environment variables.
+          for_each = slice(keys(var.NOMAD_SECRETS), 0, min(1, length(keys(var.NOMAD_SECRETS))))
+          content {
             change_mode = "noop"
-            destination = "secrets/ci.env"
+            destination = "secrets/kv.env"
             env         = true
-            data = <<EOH
+            data = "{{ key \"${var.SLUG}\" }}"
+          }
+        }
+
+        template {
+          # Pass in useful hostname(s), repo & branch info to container's runtime as env vars
+          change_mode = "noop"
+          destination = "secrets/ci.env"
+          env         = true
+          data = <<EOH
 CI_HOSTNAME=${var.HOSTNAMES[0]}
 CI_COMMIT_REF_SLUG=${var.CI_COMMIT_REF_SLUG}
 CI_PROJECT_PATH_SLUG=${var.CI_PROJECT_PATH_SLUG}
 CI_COMMIT_SHA=${var.CI_COMMIT_SHA}
-            EOH
-          }
+          EOH
         }
-      } # end dynamic "task"
+      } # end "task"
 
       dynamic "task" {
         # When a job has CI/CD secrets - eg: CI/CD Variables named like "NOMAD_SECRET_..."

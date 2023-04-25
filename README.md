@@ -373,6 +373,7 @@ variables:
   NOMAD_VAR_PORTS: '{ 5000 = "http", 5432 = "db" }'
   NOMAD_VAR_PERSISTENT_VOLUME: '/bitnami/postgresql'
   NOMAD_VAR_CHECK_PROTOCOL: 'tcp'
+  # avoid 2+ containers running where both try to write to database
   NOMAD_VAR_COUNT: 1
   NOMAD_VAR_COUNT_CANARIES: 0
 
@@ -389,7 +390,7 @@ variable "POSTGRESQL_PASSWORD" {
 ```
 `group.nomad`:
 ```ini
-task "NOMAD_VAR_SLUG-db" {
+task "db" {
   driver = "docker"
   lifecycle {
     sidecar = true
@@ -412,7 +413,7 @@ EOH
 `Dockerfile`: (setup DB env var, then fire up django front-end..)
 ```
 ...
-CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db}/production >| .env && python ..
+CMD echo DATABASE_URL=postgres://postgres:${POSTGRESQL_PASSWORD}@${NOMAD_ADDR_db}/production >| .env && python ...
 ```
 
 
