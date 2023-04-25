@@ -24,10 +24,6 @@ proto tcp dport 4646 ACCEPT;
 proto tcp dport 443 ACCEPT;
 proto tcp dport  80 ACCEPT;
 
-# webapps that want extra https ports for 2nd/alt daemons in their containers
-#   timemachine:
-proto tcp dport 8012 ACCEPT;
-
 #   dweb ipfs:
 proto tcp dport 4245 ACCEPT;
 
@@ -40,27 +36,18 @@ proto tcp dport 6969 ACCEPT;
 #   dweb wolk:
 proto tcp dport 99 ACCEPT;
 
-#   services/lcp:
-proto tcp dport 8989 ACCEPT;
-proto tcp dport 8990 ACCEPT;
-
-#   services/scribe-c2:  7777 = "irc", 8889 = "reg"
+#   services/scribe-c2: raw tcp on port 7777 = "irc"
 proto tcp dport 7777 ACCEPT;
-proto tcp dport 8889 ACCEPT;
 
 #   services/scribe-loki:  3000 = "grafana", 9090 = "prometheus"
 proto tcp dport 3000 ACCEPT;
 proto tcp dport 9090 ACCEPT;
 
-#   testing:
-proto tcp dport 8200 ACCEPT;
 
-
-# ===== TEMPORARILY OPEN ==================================================================
-# for webapps and such on higher ports
-# these were open to world when supposed to be $CLUSTER only *and yet* blocked from nomad
-# containers (!) so open for now...
-proto tcp dport 20000:45000 ACCEPT;
+# ===== INTERNALLY OPEN ===================================================================
+# For webapps with 2+ containers that need to talk to each other.
+# The requesting/client IP addresses will be in the internal docker range of IP addresses.
+saddr 172.17.0.0/16 proto tcp dport 20000:45000 ACCEPT;
 
 
 # ===== CLUSTER OPEN ======================================================================
