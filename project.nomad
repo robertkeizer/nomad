@@ -183,8 +183,7 @@ locals {
   host0domain = join(".", slice(local.host0parts, 1, length(local.host0parts)))
 
 
-  # NOTE: Empty tags list if MULTI_CONTAINER (private internal ports like DB)
-  tags = var.MULTI_CONTAINER ? {} : merge(
+  tags = merge(
     {for portnum, portname in local.ports_extra_https: portname => [
       # If the main deploy hostname is `card.example.com`, and a 2nd port is named `backend`,
       # then make its hostname be `card-backend.example.com`
@@ -295,12 +294,10 @@ job "NOMAD_VAR_SLUG" {
           # service.key == portnumber
           # service.value == portname
           name = "${service.value}"
-          # If MULTI_CONTAINER, task name is portname; else is http
-          task = join("", slice(concat(
-              [for s in [service.value]: s if var.MULTI_CONTAINER],
-              ["http"]), 0, 1))
+          task = var.MULTI_CONTAINER ? service.value : "http"
+          # NOTE: Empty tags list if MULTI_CONTAINER (private internal ports like DB)
+          tags = var.MULTI_CONTAINER ? [] : local.tags[service.value]
 
-          tags = local.tags[service.value]
           port = "${service.value}"
           check {
             name     = "alive"
