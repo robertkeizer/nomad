@@ -260,7 +260,6 @@ job "NOMAD_VAR_SLUG" {
       #
       service {
         task = "http"
-        name = "http"
         # second line automatically redirects any http traffic to https
         tags = concat([for HOST in var.HOSTNAMES :
           "urlprefix-${HOST}:443/"], [for HOST in var.HOSTNAMES :
@@ -293,7 +292,6 @@ job "NOMAD_VAR_SLUG" {
         content {
           # service.key == portnumber
           # service.value == portname
-          name = "${service.value}"
           task = var.MULTI_CONTAINER ? service.value : "http"
           # NOTE: Empty tags list if MULTI_CONTAINER (private internal ports like DB)
           tags = var.MULTI_CONTAINER ? [] : local.tags[service.value]
