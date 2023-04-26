@@ -99,7 +99,7 @@ variable "PORTS" {
   #       negative numbers makes them easily identifiable and partition-able below ;-)
   #
   # Note: if you want an extra port to only use HTTP and not HTTPS, add 10000 to your desired
-  #       port number (so for 18989, the public url will be http://...:8989 ).
+  #       port number (so for 18989, the public url will be http://...  mapped internally to :8989 ).
   #
   # Examples:
   #   NOMAD_VAR_PORTS='{ 5000 = "http" }'
@@ -136,7 +136,6 @@ variable "NOMAD_SECRETS" {
 
 locals {
   # Ignore all this.  really :)
-  job_names = [ "${var.SLUG}" ]
 
   # Copy hashmap, but remove map key/val for the main/default port (defaults to 5000).
   # Then split hashmap in two: one for HTTP port mappings; one for TCP (only; rare) port mappings.
@@ -147,35 +146,33 @@ locals {
   ports_extra_http  = {for k, v in local.ports_extra_tmp: abs(k - 10000) => v  if k > 10000}
   ports_extra_tcp   = {for k, v in local.ports_extra_tmp: abs(k)         => v  if k < -1}
   # 1st docker container configures all ports *unless* MULTI_CONTAINER is true, then just main port
-  ports_docker = values(merge(
-    {for k, v in var.PORTS        : k => v if !var.MULTI_CONTAINER},
-    {for k, v in local.ports_main : k => v if  var.MULTI_CONTAINER}))
+  ports_docker = values(var.MULTI_CONTAINER ? local.ports_main : var.PORTS)
 
   # Now create a hashmap of *all* ports to be used, but abs() any portnumber key < -1
   ports_all = merge(local.ports_main, local.ports_extra_https, local.ports_extra_http, local.ports_extra_tcp, {})
 
-  # Effectively use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
-  docker_image = element([for s in [var.CI_GITHUB_IMAGE, "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"] : s if s != ""], 0)
+  # Use CI_GITHUB_IMAGE if set, otherwise use GitLab vars interpolated string
+  docker_image = var.CI_GITHUB_IMAGE != "" ? var.CI_GITHUB_IMAGE : "${var.CI_REGISTRY_IMAGE}/${var.CI_COMMIT_REF_SLUG}:${var.CI_COMMIT_SHA}"
 
   # GitLab docker login user/pass timeout rather quickly.  If admin set CI_REGISTRY_READ_TOKEN key
   # in the group/repo [Settings] [CI/CD] [Variables] - then use a token-based alternative to deploy.
   # Effectively, use CI_REGISTRY_READ_TOKEN variant if set; else use CI_REGISTRY_* PAIR
-  deploy_token = join("", [for s in [var.CI_REGISTRY_READ_TOKEN]: "deploy-token" if s != ""])
-  docker_user = [for s in [local.deploy_token, var.CI_REGISTRY_USER] : s if s != ""]
+  docker_user = var.CI_REGISTRY_READ_TOKEN != "" ? "deploy-token" : var.CI_REGISTRY_USER
   docker_pass = [for s in [var.CI_REGISTRY_READ_TOKEN, var.CI_REGISTRY_PASSWORD] : s if s != ""]
-  # Make [""] (array of length 1, val empty string) if all docker password vars are ""
-  docker_no_login = [for s in [join("", [var.CI_REGISTRY_READ_TOKEN, var.CI_REGISTRY_PASSWORD])]: s if s == ""]
+  # Make [true] (array of length 1) if all docker password vars are ""
+  docker_no_login = length(local.docker_pass) > 0 ? [] : [true]
+
 
   # If job is using secrets and CI/CD Variables named like "NOMAD_SECRET_*" then set this
   # string to a KEY=VAL line per CI/CD variable.  If job is not using secrets, set to "".
   kv = join("\n", [for k, v in var.NOMAD_SECRETS : join("", concat([k, "='", v, "'"]))])
 
-  volumes = [for s in [var.PERSISTENT_VOLUME]: "/pv/${var.CI_PROJECT_PATH_SLUG}:${var.PERSISTENT_VOLUME}" if s != ""]
+  volumes = var.PERSISTENT_VOLUME == "" ? [] : ["/pv/${var.CI_PROJECT_PATH_SLUG}:${var.PERSISTENT_VOLUME}"]
 
-  auto_promote = concat([for v in [var.COUNT_CANARIES]: true if v > 0], [false])
+  auto_promote = var.COUNT_CANARIES > 0 ? true : false
 
-  # make boolean-like array that can logically if/else out 2 `dynamic` blocks below for type=batch
-  service_type = [for v in [var.IS_BATCH]: "service" if !v]
+  # make boolean-like array that can logically omit 2 `dynamic` blocks below for type=batch
+  service_type = var.IS_BATCH ? [] : ["service"]
 
   # split the 1st hostname into non-domain and domain parts
   host0parts = split(".", var.HOSTNAMES[0])
@@ -210,7 +207,7 @@ job "NOMAD_VAR_SLUG" {
   datacenters = ["dc1"]
 
   dynamic "group" {
-    for_each = local.job_names
+    for_each = [ "${var.SLUG}" ]
     labels = ["${group.value}"]
     content {
       count = var.COUNT
@@ -222,7 +219,7 @@ job "NOMAD_VAR_SLUG" {
           max_parallel  = 1
           # https://learn.hashicorp.com/tutorials/nomad/job-blue-green-and-canary-deployments
           canary = var.COUNT_CANARIES
-          auto_promote  = local.auto_promote[0]
+          auto_promote  = local.auto_promote
           min_healthy_time  = "30s"
           healthy_deadline  = "10m"
           progress_deadline = "11m"
@@ -262,13 +259,13 @@ job "NOMAD_VAR_SLUG" {
         name = "${var.SLUG}"
         task = "http"
         # second line automatically redirects any http traffic to https
-        tags = concat([for HOST in var.HOSTNAMES :
-          "urlprefix-${HOST}:443/"], [for HOST in var.HOSTNAMES :
-          "urlprefix-${HOST}:80/ redirect=308,https://${HOST}$path"])
+        tags = concat(
+          [for HOST in var.HOSTNAMES: "urlprefix-${HOST}:443/"],
+          [for HOST in var.HOSTNAMES: "urlprefix-${HOST}:80/ redirect=308,https://${HOST}$path"])
 
-        canary_tags = concat([for HOST in var.HOSTNAMES :
-          "urlprefix-canary-${HOST}:443/"], [for HOST in var.HOSTNAMES :
-          "urlprefix-canary-${HOST}:80/ redirect=308,https://canary-${HOST}/"])
+        canary_tags = concat(
+          [for HOST in var.HOSTNAMES: "urlprefix-canary-${HOST}:443/"],
+          [for HOST in var.HOSTNAMES: "urlprefix-canary-${HOST}:80/ redirect=308,https://canary-${HOST}/"])
 
         port = "http"
         check {
@@ -332,7 +329,7 @@ job "NOMAD_VAR_SLUG" {
             # We will 10x that for a **hard limit**
             memory_hard_limit = "${var.MEMORY * 10}"
 
-            force_pull = true
+            force_pull = var.FORCE_PULL
           }
         }
         dynamic "config" {
@@ -350,7 +347,7 @@ job "NOMAD_VAR_SLUG" {
 
             auth {
               server_address = "${var.CI_REGISTRY}"
-              username = element(local.docker_user, 0)
+              username = local.docker_user
               password = "${config.value}"
             }
 
