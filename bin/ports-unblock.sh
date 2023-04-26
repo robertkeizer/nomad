@@ -26,7 +26,6 @@ proto tcp dport 7777 ACCEPT;
 
 
 
-proto tcp dport   99 ACCEPT;  #  dweb              wolk
 proto tcp dport 4245 ACCEPT;  #  dweb-ipfs         ipfs
 proto tcp dport 6881 ACCEPT;  #  dweb-webtorrent   webtorrentseeder
 proto tcp dport 6969 ACCEPT;  #  dweb-webtorrent   webtorrenttracker
