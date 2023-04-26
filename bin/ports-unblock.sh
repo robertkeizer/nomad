@@ -16,32 +16,21 @@ echo '
 
 
 # ===== WORLD OPEN =======================================================================
-# nomad main port
-proto tcp dport 4646 ACCEPT;
-
 
 # loadbalancer main ports - open to world for http/s std. ports
 proto tcp dport 443 ACCEPT;
 proto tcp dport  80 ACCEPT;
 
-#   dweb ipfs:
-proto tcp dport 4245 ACCEPT;
-
-#   dweb webtorrent-seeder:
-proto tcp dport 6881 ACCEPT;
-
-#   dweb webtorrent-tracker:
-proto tcp dport 6969 ACCEPT;
-
-#   dweb wolk:
-proto tcp dport 99 ACCEPT;
-
 #   services/scribe-c2: raw tcp on port 7777 = "irc"
 proto tcp dport 7777 ACCEPT;
 
-#   services/scribe-loki:  3000 = "grafana", 9090 = "prometheus"
-proto tcp dport 3000 ACCEPT;
-proto tcp dport 9090 ACCEPT;
+
+
+proto tcp dport   99 ACCEPT;  #  dweb              wolk
+proto tcp dport 4245 ACCEPT;  #  dweb-ipfs         ipfs
+proto tcp dport 6881 ACCEPT;  #  dweb-webtorrent   webtorrentseeder
+proto tcp dport 6969 ACCEPT;  #  dweb-webtorrent   webtorrenttracker
+
 
 
 # ===== INTERNALLY OPEN ===================================================================
