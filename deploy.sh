@@ -158,9 +158,6 @@ function main() {
   ) >| tmp.nomad
   cp tmp.nomad project.nomad
   (
-    # xxx temporary until all 5 known repos update their `group.nomad` file:
-    if [ -e "$REPODIR/group.nomad" ]; then sed -i s/NOMAD_VAR_SLUG-db/db/ "$REPODIR/group.nomad"; fi
-
     fgrep -B10000 GROUP.NOMAD--INSERTS-HERE project.nomad
     # if this filename doesnt exist in repo, this line noops
     cat "$REPODIR/group.nomad" 2>/dev/null || echo
