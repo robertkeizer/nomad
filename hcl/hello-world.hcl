@@ -39,7 +39,7 @@ job "hello-world" {
       }
       service {
         name = local.job_names[0]
-        tags = ["urlprefix-${var.CI_PROJECT_PATH_SLUG}-${var.CI_COMMIT_REF_SLUG}.${var.BASE_DOMAIN}:443/"]
+        tags = ["urlprefix-${var.CI_PROJECT_PATH_SLUG}-${var.CI_COMMIT_REF_SLUG}.${var.BASE_DOMAIN}/"]
         port = "http"
         check {
           type     = "http"
