@@ -186,7 +186,7 @@ locals {
       # If the main deploy hostname is `card.example.com`, and a 2nd port is named `backend`,
       # then make its hostname be `card-backend.example.com`
       "urlprefix-${local.host0}-${portname}.${local.host0domain}:443/",
-      legacy ? "urlprefix-${var.HOSTNAMES[0]}:${portnum}/" : # xxx
+      local.legacy ? "urlprefix-${var.HOSTNAMES[0]}:${portnum}/" : # xxx
         "urlprefix-${local.host0}-${portname}.${local.host0domain}:80/ redirect=308,https://${local.host0}-${portname}.${local.host0domain}$path"
     ]},
     {for portnum, portname in local.ports_extra_http: portname => [
