@@ -185,12 +185,11 @@ locals {
       # If the main deploy hostname is `card.example.com`, and a 2nd port is named `backend`,
       # then make its hostname be `card-backend.example.com`
       "urlprefix-${local.host0}-${portname}.${local.host0domain}:443/",
-      "urlprefix-${local.host0}-${portname}.${local.host0domain}:80/ redirect=308,https://${local.host0}-${portname}.${local.host0domain}$path",
-      "urlprefix-${var.HOSTNAMES[0]}:${portnum}/", # xxx legacy -- remove once everyone updated to hostnames, not ports
+      startswith(var.CI_PROJECT_PATH_SLUG, "www-dweb-") ? "urlprefix-${var.HOSTNAMES[0]}:${portnum}/" : # xxx legacy
+        "urlprefix-${local.host0}-${portname}.${local.host0domain}:80/ redirect=308,https://${local.host0}-${portname}.${local.host0domain}$path"
     ]},
     {for portnum, portname in local.ports_extra_http: portname => [
-      "urlprefix-${local.host0}-${portname}.${local.host0domain}/ proto=http",
-      "urlprefix-${var.HOSTNAMES[0]}:${portnum}/ proto=http", # xxx legacy -- remove once everyone updated to hostnames, not ports
+      "urlprefix-${local.host0}-${portname}.${local.host0domain}/ proto=http"
     ]},
     {for portnum, portname in local.ports_extra_tcp: portname => [
       "urlprefix-:${portnum} proto=tcp"
