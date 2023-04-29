@@ -188,7 +188,7 @@ function _nom-url() {
   # logically private helper function
   URL=$(curl -sH "X-Nomad-Token: ${NOMAD_TOKEN?}" ${NOMAD_ADDR?}/v1/job/$JOB \
     | jq -r '.TaskGroups[0].Services[0].Tags' \
-    | fgrep :443 |tr -d '", ' |perl -pe 's/:443//; s=^urlprefix\-=https://='
+    | fgrep . |fgrep -v redirect=308 |tr -d '", ' |perl -pe 's/:443//; s=^urlprefix\-=https://=;'
   )
 }
 
