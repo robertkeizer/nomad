@@ -181,7 +181,9 @@ locals {
 
   legacy = var.CI_PROJECT_PATH_SLUG == "www-dweb-ipfs" ? true : (var.CI_PROJECT_PATH_SLUG == "www-dweb-webtorrent" ? true : false) # xxx
 
-  tags = merge(
+  legacy2 = local.host0domain == "staging.archive.org" || local.host0domain == "prod.archive.org" || var.HOSTNAMES[0] == "polyfill.archive.org" || var.HOSTNAMES[0] == "esm.archive.org" || var.HOSTNAMES[0] == "purl.archive.org" || var.HOSTNAMES[0] == "popcorn.archive.org" # xxx
+
+  tags = local.legacy2 ? merge(
     {for portnum, portname in local.ports_extra_https: portname => [
       # If the main deploy hostname is `card.example.com`, and a 2nd port is named `backend`,
       # then make its hostname be `card-backend.example.com`
@@ -195,6 +197,16 @@ locals {
     {for portnum, portname in local.ports_extra_tcp: portname => [
       "urlprefix-:${portnum} proto=tcp"
     ]},
+  ) : merge(
+    {for portnum, portname in local.ports_extra_https: portname => [
+      # If the main deploy hostname is `card.example.com`, and a 2nd port is named `backend`,
+      # then make its hostname be `card-backend.example.com`
+      local.legacy ? "https://${var.HOSTNAMES[0]}:${portnum}" : "https://${local.host0}-${portname}.${local.host0domain}" // xxx
+    ]},
+    {for portnum, portname in local.ports_extra_http: portname => [
+      "http://${local.host0}-${portname}.${local.host0domain}"
+    ]},
+    {for portnum, portname in local.ports_extra_tcp: portname => []},
   )
 }
 
@@ -258,14 +270,14 @@ job "NOMAD_VAR_SLUG" {
       service {
         name = "${var.SLUG}"
         task = "http"
-        # second line automatically redirects any http traffic to https
+
         tags = concat(
-          [for HOST in var.HOSTNAMES: "urlprefix-${HOST}:443/"],
-          [for HOST in var.HOSTNAMES: "urlprefix-${HOST}:80/ redirect=308,https://${HOST}$path"])
+          [for HOST in var.HOSTNAMES: local.legacy2 ? "urlprefix-${HOST}:443/" : "https://${HOST}"],
+          local.legacy2 ? [for HOST in var.HOSTNAMES: "urlprefix-${HOST}:80/ redirect=308,https://${HOST}$path"] : [])
 
         canary_tags = concat(
-          [for HOST in var.HOSTNAMES: "urlprefix-canary-${HOST}:443/"],
-          [for HOST in var.HOSTNAMES: "urlprefix-canary-${HOST}:80/ redirect=308,https://canary-${HOST}/"])
+          [for HOST in var.HOSTNAMES: local.legacy2 ? "urlprefix-canary-${HOST}:443/" : "https://canary-${HOST}/"],
+          local.legacy2 ? [for HOST in var.HOSTNAMES: "urlprefix-canary-${HOST}:80/ redirect=308,https://canary-${HOST}/"] : [])
 
         port = "http"
         check {
