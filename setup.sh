@@ -48,7 +48,7 @@ If invoking cmd-line has env var:
 
 
   Example:
-    FS_PV=1.1.1.1:/mnt/exports  ./setup.sh  vm1.example.com  vm2.example.com
+    NFS_PV=1.1.1.1:/mnt/exports  ./setup.sh  vm1.example.com  vm2.example.com
 
 
 ----------------------------------------------------------------------------------------------------
