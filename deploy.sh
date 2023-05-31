@@ -196,7 +196,7 @@ EOF
   export INDEX=$(grep -E -o -- '-check-index [0-9]+' plan.log |tr -dc 0-9)
 
   # IA dev & prod clusters sometimes fail to fetch deployment :( -- so let's retry 5x
-  for RETRIES_LEFT in $(seq 5 1); do
+  for RETRIES in $(seq 1 5); do
     set -o pipefail
     nomad run    -var-file=env.env -check-index $INDEX project.hcl 2>&1 |tee check.log
     if [ "$?" = "0" ]; then
