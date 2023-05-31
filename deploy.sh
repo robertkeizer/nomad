@@ -195,21 +195,24 @@ EOF
   nomad plan     -var-file=env.env project.hcl 2>&1 |sed 's/\(password[^ \t]*[ \t]*\).*/\1 ... /' |tee plan.log  ||  echo
   export INDEX=$(grep -E -o -- '-check-index [0-9]+' plan.log |tr -dc 0-9)
 
-  # This particular fail case output doesnt seem to exit non-zero -- so we have to check for it
-  #   ==> 2023-03-29T17:21:15Z: Error fetching deployment
-  set -o pipefail
-  nomad run      -var-file=env.env -check-index $INDEX project.hcl 2>&1 |tee check.log
-  if [ "$?" != "0" ]; then
-    exit 1
-  fi
-  if fgrep 'Error fetching deployment' check.log; then
-    exit 1
-  fi
+  # IA dev & prod clusters sometimes fail to fetch deployment :( -- so let's retry 5x
+  for RETRIES_LEFT in $(seq 5 1); do
+    set -o pipefail
+    nomad run    -var-file=env.env -check-index $INDEX project.hcl 2>&1 |tee check.log
+    if [ "$?" = "0" ]; then
+      # This particular fail case output doesnt seem to exit non-zero -- so we have to check for it
+      #   ==> 2023-03-29T17:21:15Z: Error fetching deployment
+      if ! fgrep 'Error fetching deployment' check.log; then
+        echo deployed to https://$HOSTNAME
+        return
+      fi
+    fi
 
-  rm env.env plan.log check.log
-  set +x
-
-  echo deployed to https://$HOSTNAME
+    echo retrying..
+    sleep 10
+    continue
+  done
+  exit 1
 }
 
 
