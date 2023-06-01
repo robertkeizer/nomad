@@ -236,17 +236,19 @@ function github-setup() {
   # (registry host)
   export CI_REGISTRY=ghcr.io
 
+  local GITHUB_REPOSITORY_LC=$(echo "${GITHUB_REPOSITORY?}" |tr A-Z a-z)
+
   # eg: ghcr.io/internetarchive/dyno:main  (registry image)
-  export CI_GITHUB_IMAGE="${CI_REGISTRY?}/${GITHUB_REPOSITORY?}:${GITHUB_REF_NAME?}"
+  export CI_GITHUB_IMAGE="${CI_REGISTRY?}/${GITHUB_REPOSITORY_LC?}:${GITHUB_REF_NAME?}"
 
   # eg: dyno  (project name)
-  export CI_PROJECT_NAME=$(basename "${GITHUB_REPOSITORY?}")
+  export CI_PROJECT_NAME=$(basename "${GITHUB_REPOSITORY_LC?}")
 
   # eg: main  (branchname)  xxxd slugme
   export CI_COMMIT_REF_SLUG="${GITHUB_REF_NAME?}"
 
   # eg: internetarchive-dyno  xxxd better slugification
-  export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr '/.' - |cut -b1-63 | sed 's/[^a-zA-Z0-9\-]//g')
+  export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY_LC?}" |tr '/.' - |cut -b1-63 | sed 's/[^a-z0-9\-]//g')
 
   export CI_REGISTRY_READ_TOKEN=${REGISTRY_TOKEN?}
   if [ "$PRIVATE_REPO" = "false" ]; then
