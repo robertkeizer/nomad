@@ -246,7 +246,7 @@ function github-setup() {
   export CI_COMMIT_REF_SLUG="${GITHUB_REF_NAME?}"
 
   # eg: internetarchive-dyno  xxxd better slugification
-  export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr '/.' -)
+  export CI_PROJECT_PATH_SLUG=$(echo "${GITHUB_REPOSITORY?}" |tr '/.' - |cut -b1-63)
 
   export CI_REGISTRY_READ_TOKEN=${REGISTRY_TOKEN?}
   if [ "$PRIVATE_REPO" = "false" ]; then
