@@ -1,5 +1,11 @@
 #!/bin/bash -e
 
+function verbose() {
+  if [ "$NOMAD_VAR_VERBOSE" ]; then
+    echo "$@";
+  fi
+}
+
 
 function main() {
   if [ "$GITHUB_ACTIONS" ]; then github-setup; fi
@@ -143,6 +149,8 @@ function main() {
     wget -q https://gitlab.com/internetarchive/nomad/-/raw/master/project.nomad
   fi
 
+  verbose "Replacing variables internal to project.nomad."
+
   (
     fgrep -B10000 VARS.NOMAD--INSERTS-HERE project.nomad
     # if this filename doesnt exist in repo, this line noops
@@ -165,12 +173,16 @@ function main() {
   ) >| tmp.nomad
   cp tmp.nomad project.nomad
 
+  verbose "project.nomad -> project.hcl"
+
   cp project.nomad project.hcl
 
-
+  verbose "NOMAD_VAR_SLUG variable substitution"
   # Do the one current substitution nomad v1.0.3 can't do now (apparently a bug)
   sed -i "s/NOMAD_VAR_SLUG/$NOMAD_VAR_SLUG/" project.hcl
 
+
+  verbose "Handling NOMAD_SECRETS."
   if [ "$NOMAD_SECRETS" = "" ]; then
     # Set NOMAD_SECRETS to JSON encoded key/val hashmap of env vars starting w/ "NOMAD_SECRET_"
     # (w/ NOMAD_SECRET_ prefix omitted), then convert to HCL style hashmap string (chars ":" => "=")
@@ -185,7 +197,8 @@ function main() {
 NOMAD_SECRETS=$NOMAD_SECRETS
 EOF
   fi
-  # copy current env vars starting with "CI_" to "NOMAD_VAR_CI_" variants & inject them into shell
+
+  verbose "copy current env vars starting with "CI_" to "NOMAD_VAR_CI_" variants & inject them into shell"
   deno eval 'Object.entries(Deno.env.toObject()).map(([k, v]) => console.log("export NOMAD_VAR_"+k+"="+JSON.stringify(v)))' | grep -E '^export NOMAD_VAR_CI_' >| ci.env
   source ci.env
   rm     ci.env
@@ -266,6 +279,5 @@ function github-setup() {
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
 }
-
 
 main "$1"
