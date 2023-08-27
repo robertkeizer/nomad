@@ -8,6 +8,9 @@ function verbose() {
 
 
 function main() {
+  # IF someone set this programmatically in their project yml `before_script:` tag, etc., exit
+  if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
+
   if [ "$GITHUB_ACTIONS" ]; then github-setup; fi
 
 
