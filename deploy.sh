@@ -281,6 +281,11 @@ function github-setup() {
 
   # see if we should do nothing
   if [ "$NOMAD_VAR_NO_DEPLOY" ]; then exit 0; fi
+
+  if [ "$NOMAD_TOKEN" = "" ]; then
+    echo "NOMAD_TOKEN not set at the end of github-setup.."
+  fi
+
 }
 
 main "$1"
